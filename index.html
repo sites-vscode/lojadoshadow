@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#101015">
-  <meta name="description" content="Escolha seu pacote de diamantes, gere seu Pix e registre seu pedido.">
+  <meta name="description" content="Escolha diamantes, Passe Booyah ou emotes, gere seu Pix e registre seu pedido.">
   <title>Shadow Store — Diamantes Free Fire</title>
   <style>
     :root {
@@ -195,6 +195,12 @@
     .section-heading p { margin: 0; color: var(--muted); font-size: 13px; }
     .label { color: #cb83ff; font-size: 10px; font-weight: 900; letter-spacing: .13em; text-transform: uppercase; }
     .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+    .pass-shop { padding-top: 0; }
+    .pass-cards { grid-template-columns: minmax(0, 360px); justify-content: center; }
+    .pass-card { border-color: rgba(190, 102, 255, .42); }
+    .pass-card .product-gem { color: #ffd27b; text-shadow: 0 0 20px rgba(255, 190, 92, .35); }
+    .emotes-shop { padding-top: 0; }
+    .emote-card .product-gem { color: #ff9bcb; text-shadow: 0 0 20px rgba(255, 92, 174, .35); }
     .product {
       position: relative;
       overflow: hidden;
@@ -365,6 +371,8 @@
       </a>
       <div class="nav-links">
         <a href="#pacotes">Pacotes</a>
+        <a href="#passe-booyah">Passe Booyah</a>
+        <a href="#emotes">Emotes</a>
         <a href="#como-comprar">Como comprar</a>
         <a href="#duvidas">Dúvidas</a>
       </div>
@@ -414,6 +422,32 @@
       <p class="price-note">Confira o valor e os dados do Pix no seu banco antes de confirmar o pagamento.</p>
     </section>
 
+    <section class="shop pass-shop container" id="passe-booyah">
+      <div class="section-heading">
+        <div>
+          <div class="label">Passe especial</div>
+          <h2>Passe Booyah</h2>
+          <p>Adquira o passe separadamente dos pacotes de diamantes.</p>
+        </div>
+        <span class="trust-note"><span aria-hidden="true">🎟️</span> R$ 12,90 por unidade</span>
+      </div>
+      <div class="cards pass-cards" id="pass-list" aria-live="polite"></div>
+      <p class="price-note">Confira o valor e os dados do Pix no seu banco antes de confirmar o pagamento.</p>
+    </section>
+
+    <section class="shop emotes-shop container" id="emotes">
+      <div class="section-heading">
+        <div>
+          <div class="label">Dê mais estilo à gameplay</div>
+          <h2>Emotes</h2>
+          <p>Escolha seu emote favorito e faça o pedido pelo Pix.</p>
+        </div>
+        <span class="trust-note"><span aria-hidden="true">💃</span> Vários estilos para escolher</span>
+      </div>
+      <div class="cards" id="emote-list" aria-live="polite"></div>
+      <p class="price-note">Preços de venda por unidade, conforme informado. Custos e lucro não foram incluídos.</p>
+    </section>
+
     <section class="how" id="como-comprar">
       <div class="container">
         <div class="center-heading">
@@ -433,7 +467,7 @@
       <div class="faq-grid">
         <div class="faq-intro"><div class="label">Perguntas frequentes</div><h2>Tem dúvida?</h2><p>Veja algumas informações importantes antes de pedir.</p></div>
         <div>
-          <details><summary>Como faço meu pedido?</summary><p>Escolha diamantes ou um Passe Booyah, informe seu ID de jogador e use o QR Code ou o código Pix exibido na página de pagamento.</p></details>
+          <details><summary>Como faço meu pedido?</summary><p>Escolha diamantes, um Passe Booyah ou um emote, informe seu ID de jogador e use o QR Code ou o código Pix exibido na página de pagamento.</p></details>
           <details><summary>Preciso informar minha senha?</summary><p>Não. Nunca informe sua senha, código de verificação ou dados de acesso. Para iniciar o pedido, a loja solicitará apenas seu ID de jogador.</p></details>
           <details><summary>Quanto tempo demora para receber?</summary><p>O prazo depende do atendimento da loja. Guarde o comprovante e confirme a entrega diretamente com o vendedor.</p></details>
           <details><summary>O pagamento é confirmado automaticamente?</summary><p>Não. O site só monta o código Pix; a confirmação e a entrega precisam ser feitas pelo vendedor após conferir o pagamento no banco.</p></details>
@@ -477,16 +511,25 @@
 
   <script>
     const products = [
-      { code: "diamonds-110", name: "110 diamantes", amount: 110, price: "R$ 5,90", subtitle: "Pra dar aquele primeiro upgrade", cents: 590 },
-      { code: "diamonds-341", name: "341 diamantes", amount: 341, price: "R$ 18,90", subtitle: "Um reforço para sua conta", cents: 1890 },
-      { code: "diamonds-572", name: "572 diamantes", amount: 572, price: "R$ 27,90", subtitle: "Mais espaço para escolher", tag: "Queridinho", featured: true, cents: 2790 },
-      { code: "diamonds-1166", name: "1.166 diamantes", amount: 1166, price: "R$ 58,90", subtitle: "Pra chegar com estilo", cents: 5890 },
-      { code: "diamonds-2398", name: "2.398 diamantes", amount: 2398, price: "R$ 113,90", subtitle: "Pacote para quem quer mais", tag: "Maior pacote", cents: 11390 },
-      { code: "diamonds-6160", name: "6.160 diamantes", amount: 6160, price: "R$ 271,90", subtitle: "O pacote para subir de nível", cents: 27190 },
-      { code: "booyah-pass", name: "Passe Booyah", amount: null, price: "R$ 11,99", subtitle: "Passe para sua conta no Free Fire", cents: 1199 }
+      { code: "diamonds-110", type: "diamonds", name: "110 diamantes", amount: 110, price: "R$ 5,90", subtitle: "Pra dar aquele primeiro upgrade", cents: 590 },
+      { code: "diamonds-341", type: "diamonds", name: "341 diamantes", amount: 341, price: "R$ 18,90", subtitle: "Um reforço para sua conta", cents: 1890 },
+      { code: "diamonds-572", type: "diamonds", name: "572 diamantes", amount: 572, price: "R$ 27,90", subtitle: "Mais espaço para escolher", tag: "Queridinho", featured: true, cents: 2790 },
+      { code: "diamonds-1166", type: "diamonds", name: "1.166 diamantes", amount: 1166, price: "R$ 58,90", subtitle: "Pra chegar com estilo", cents: 5890 },
+      { code: "diamonds-2398", type: "diamonds", name: "2.398 diamantes", amount: 2398, price: "R$ 113,90", subtitle: "Pacote para quem quer mais", tag: "Maior pacote", cents: 11390 },
+      { code: "diamonds-6160", type: "diamonds", name: "6.160 diamantes", amount: 6160, price: "R$ 271,90", subtitle: "O pacote para subir de nível", cents: 27190 },
+      { code: "booyah-pass", type: "booyah_pass", name: "Passe Booyah", amount: null, price: "R$ 12,90", subtitle: "Passe para sua conta no Free Fire", icon: "🎟️", unit: "unidade", cents: 1290 },
+      { code: "emote-tubarao-bebe", type: "emote", name: "Tubarão Bebê", amount: null, price: "R$ 16,90", subtitle: "Emote Tubarão Bebê", icon: "🦈", unit: "unidade", cents: 1690 },
+      { code: "emote-aplauso", type: "emote", name: "Aplauso", amount: null, price: "R$ 12,90", subtitle: "Emote Aplauso", icon: "👏", unit: "unidade", cents: 1290 },
+      { code: "emote-lol", type: "emote", name: "LOL", amount: null, price: "R$ 12,90", subtitle: "Emote LOL", icon: "😂", unit: "unidade", cents: 1290 },
+      { code: "emote-agite-comigo", type: "emote", name: "Agite Comigo", amount: null, price: "R$ 16,90", subtitle: "Emote Agite Comigo", icon: "💃", unit: "unidade", cents: 1690 },
+      { code: "emote-o-cisne", type: "emote", name: "O Cisne", amount: null, price: "R$ 16,90", subtitle: "Emote O Cisne", icon: "🦢", unit: "unidade", cents: 1690 },
+      { code: "emote-flores-do-amor", type: "emote", name: "Flores do Amor", amount: null, price: "R$ 33,90", subtitle: "Emote Flores do Amor", icon: "🌹", unit: "unidade", cents: 3390 },
+      { code: "emote-danca-em-voga", type: "emote", name: "Dança em Voga", amount: null, price: "R$ 16,90", subtitle: "Emote Dança em Voga", icon: "🪩", unit: "unidade", cents: 1690 }
     ];
 
     const productList = document.querySelector("#product-list");
+    const passList = document.querySelector("#pass-list");
+    const emoteList = document.querySelector("#emote-list");
     const modal = document.querySelector("#order-modal");
     const playerIdInput = document.querySelector("#player-id");
     const formMessage = document.querySelector("#form-message");
@@ -494,16 +537,21 @@
 
     products.forEach((product) => {
       const card = document.createElement("article");
-      card.className = `product${product.featured ? " featured" : ""}`;
+      card.className = `product${product.featured ? " featured" : ""}${product.type === "booyah_pass" ? " pass-card" : ""}${product.type === "emote" ? " emote-card" : ""}`;
       const tag = product.tag ? `<span class="product-tag">${product.tag}</span>` : "";
       card.innerHTML = `${tag}
-        <div class="product-gem" aria-hidden="true">◆</div>
+        <div class="product-gem" aria-hidden="true">${product.icon || "◆"}</div>
         <h3>${product.name}</h3>
         <p class="product-sub">${product.subtitle}</p>
-        <p class="product-price">${product.price} <small>/ pacote</small></p>
-        <button class="button" type="button">Quero esse pacote <span aria-hidden="true">→</span></button>`;
+        <p class="product-price">${product.price} <small>/ ${product.unit || "pacote"}</small></p>
+        <button class="button" type="button">Comprar agora <span aria-hidden="true">→</span></button>`;
       card.querySelector("button").addEventListener("click", () => openOrder(product));
-      productList.append(card);
+      const productListTarget = product.type === "booyah_pass"
+        ? passList
+        : product.type === "emote"
+          ? emoteList
+          : productList;
+      productListTarget.append(card);
     });
 
     function openOrder(product) {
