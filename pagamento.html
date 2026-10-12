@@ -200,12 +200,12 @@
       }
       orderStatus.textContent = "Registrando pedido…";
       const client = window.supabase.createClient(config.url, config.anonKey);
-      const { error } = await client.from("orders").upsert({
+      const { error } = await client.from("orders").insert({
         id: orderId,
         player_id: playerId,
         item_type: product.type,
         diamonds: product.diamonds
-      }, { onConflict: "id", ignoreDuplicates: true });
+      });
       if (error) {
         console.error("Erro retornado pelo Supabase ao registrar pedido:", error);
         orderStatus.textContent = `Não foi possível registrar na área administrativa: ${error.message}`;
