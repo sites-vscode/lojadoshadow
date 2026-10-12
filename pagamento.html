@@ -1,1 +1,257 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101015">
+  <meta name="description" content="Pague seu pacote de diamantes com Pix. Confira os dados do recebedor no seu banco.">
+  <title>Pagamento Pix — Shadow Store</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #101015;
+      --panel: #1b1a21;
+      --muted: #a4a1ad;
+      --line: rgba(255, 255, 255, .1);
+      --purple: #a855f7;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { min-height: 100vh; margin: 0; background: radial-gradient(ellipse at 50% 0, rgba(132, 51, 190, .18), transparent 48%), var(--bg); color: #f8f7fb; }
+    a { color: inherit; text-decoration: none; }
+    button { font: inherit; }
+    .container { width: min(900px, calc(100% - 32px)); margin: 0 auto; }
+    header { border-bottom: 1px solid var(--line); background: rgba(16, 16, 21, .84); }
+    .nav { display: flex; min-height: 68px; align-items: center; justify-content: space-between; gap: 16px; }
+    .brand { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 900; letter-spacing: -.04em; }
+    .brand-mark { display: grid; width: 35px; height: 35px; place-items: center; border-radius: 11px; background: linear-gradient(135deg, #a855f7, #f04cbb); }
+    .brand span:last-child span { color: #cb7aff; }
+    .back { color: #c8c3cf; font-size: 12px; font-weight: 700; }
+    main { padding: 49px 0 62px; }
+    .heading { margin: 0 auto 23px; text-align: center; }
+    .label { color: #cb83ff; font-size: 10px; font-weight: 900; letter-spacing: .13em; text-transform: uppercase; }
+    h1 { margin: 9px 0 5px; font-size: clamp(28px, 5vw, 38px); letter-spacing: -.05em; }
+    .heading p { margin: 0; color: var(--muted); font-size: 13px; }
+    .checkout { display: grid; grid-template-columns: 1fr 1fr; overflow: hidden; border: 1px solid var(--line); border-radius: 19px; background: var(--panel); box-shadow: 0 25px 80px rgba(0, 0, 0, .24); }
+    .order { padding: 28px; border-right: 1px solid var(--line); }
+    .order-label { color: var(--muted); font-size: 11px; }
+    .order h2 { margin: 5px 0 20px; font-size: 24px; letter-spacing: -.04em; }
+    .price { margin: 0 0 20px; color: #d39aff; font-size: 34px; font-weight: 900; letter-spacing: -.05em; }
+    .detail { display: flex; justify-content: space-between; gap: 14px; padding: 12px 0; border-top: 1px solid var(--line); font-size: 12px; }
+    .detail span { color: var(--muted); }
+    .detail strong { text-align: right; }
+    .order-note { margin: 18px 0 0; padding: 12px; border: 1px solid rgba(245, 180, 90, .18); border-radius: 11px; background: rgba(245, 180, 90, .06); color: #d7c7aa; font-size: 11px; line-height: 1.6; }
+    .order-status { min-height: 17px; margin: 9px 0 0; color: #c7c1ce; font-size: 10px; }
+    .order-status.success { color: #83e3b2; }
+    .order-status.failure { color: #ffc779; }
+    .payment { display: flex; align-items: center; flex-direction: column; padding: 28px; text-align: center; }
+    .payment h2 { margin: 0 0 4px; font-size: 17px; }
+    .payment > p { margin: 0 0 16px; color: var(--muted); font-size: 11px; }
+    #qrcode { display: grid; width: 232px; height: 232px; place-items: center; padding: 10px; border-radius: 14px; background: white; }
+    #qrcode canvas, #qrcode img { display: block; width: 212px !important; height: 212px !important; image-rendering: pixelated; }
+    #qr-status { min-height: 17px; margin: 8px 0 12px; color: #c7c1ce; font-size: 10px; }
+    .copy-button { display: inline-flex; width: 100%; align-items: center; justify-content: center; gap: 8px; padding: 12px 15px; border: 0; border-radius: 11px; background: linear-gradient(100deg, #9a42ee, #d43eb4); color: white; font-size: 12px; font-weight: 800; cursor: pointer; }
+    .copy-button:hover { filter: brightness(1.1); }
+    .copy-button:focus-visible, .back:focus-visible { outline: 2px solid #e3b6ff; outline-offset: 3px; }
+    .pix-label { width: 100%; margin: 17px 0 6px; color: #c7c1ce; text-align: left; font-size: 10px; font-weight: 700; }
+    #pix-code { width: 100%; min-height: 61px; padding: 9px; resize: vertical; border: 1px solid var(--line); border-radius: 9px; background: #131318; color: #aaa5b2; font: 10px/1.5 ui-monospace, Consolas, monospace; }
+    #copy-status { min-height: 15px; margin: 5px 0 0; color: #83e3b2; font-size: 10px; }
+    .error { display: none; margin: 20px auto; padding: 18px; border: 1px solid rgba(255, 120, 120, .3); border-radius: 13px; background: rgba(255, 80, 80, .07); color: #ffd4d4; font-size: 13px; text-align: center; }
+    .error.visible { display: block; }
+    footer { padding: 18px 0 25px; border-top: 1px solid var(--line); color: #827d89; font-size: 10px; line-height: 1.6; }
+    @media (max-width: 650px) {
+      main { padding: 35px 0 44px; }
+      .checkout { grid-template-columns: 1fr; }
+      .order { padding: 23px; border-right: 0; border-bottom: 1px solid var(--line); }
+      .payment { padding: 23px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <nav class="nav container" aria-label="Navegação">
+      <a class="brand" href="index.html"><span class="brand-mark" aria-hidden="true">✦</span><span>SHADOW<span>STORE</span></span></a>
+      <a class="back" href="index.html#pacotes">← Voltar aos pacotes</a>
+    </nav>
+  </header>
+  <main class="container">
+    <div class="heading">
+      <div class="label">Pagamento Pix</div>
+      <h1>Finalize seu pedido</h1>
+      <p>Escaneie o QR Code no aplicativo do seu banco ou copie o código Pix.</p>
+    </div>
+    <p class="error" id="page-error" role="alert"></p>
+    <div class="checkout" id="checkout">
+      <section class="order" aria-labelledby="order-title">
+        <div class="order-label">Resumo do pedido</div>
+        <h2 id="order-title">Pacote de diamantes</h2>
+        <p class="price" id="price"></p>
+        <div class="detail"><span>Diamantes</span><strong id="diamonds"></strong></div>
+        <div class="detail"><span>ID de jogador</span><strong id="player-id"></strong></div>
+        <div class="detail"><span>Recebedor</span><strong>Carlos Pingas</strong></div>
+        <div class="detail"><span>Chave Pix</span><strong>doacoespix23@gmail.com</strong></div>
+        <p class="order-status" id="order-status" role="status" aria-live="polite"></p>
+        <p class="order-note">Antes de confirmar, confira no aplicativo do seu banco o nome do recebedor e o valor. O site não confirma pagamentos nem processa a entrega dos diamantes.</p>
+      </section>
+      <section class="payment" aria-labelledby="payment-title">
+        <h2 id="payment-title">Pague com Pix</h2>
+        <p>QR Code gerado para o valor deste pacote</p>
+        <div id="qrcode" role="img" aria-label="QR Code Pix do pedido"></div>
+        <p id="qr-status" role="status" aria-live="polite"></p>
+        <button class="copy-button" id="copy-button" type="button">Copiar código Pix <span aria-hidden="true">⧉</span></button>
+        <label class="pix-label" for="pix-code">Pix copia e cola</label>
+        <textarea id="pix-code" readonly aria-label="Código Pix copia e cola"></textarea>
+        <p id="copy-status" role="status" aria-live="polite"></p>
+      </section>
+    </div>
+  </main>
+  <footer><div class="container">Esta loja é independente e não é afiliada, patrocinada ou oficialmente vinculada à Garena. Confira o recebedor e o valor no aplicativo do seu banco antes de pagar.</div></footer>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" referrerpolicy="no-referrer" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" referrerpolicy="no-referrer" crossorigin="anonymous"></script>
+  <script src="supabase-config.js"></script>
+  <script>
+    const PIX_KEY = "doacoespix23@gmail.com";
+    const PIX_NAME = "CARLOS PINGAS";
+    const PIX_CITY = "S M DO OESTE";
+    const products = {
+      "110": { amount: 110, cents: 590 },
+      "341": { amount: 341, cents: 1890 },
+      "572": { amount: 572, cents: 2790 },
+      "1166": { amount: 1166, cents: 5890 },
+      "2398": { amount: 2398, cents: 11390 },
+      "6160": { amount: 6160, cents: 27190 }
+    };
+    const params = new URLSearchParams(window.location.search);
+    const product = products[params.get("pacote")];
+    const playerId = params.get("jogador") || "";
+    const orderId = params.get("pedido") || "";
+    const pageError = document.querySelector("#page-error");
+    const orderStatus = document.querySelector("#order-status");
 
+    function showError(message) {
+      pageError.textContent = message;
+      pageError.classList.add("visible");
+      document.querySelector("#checkout").hidden = true;
+    }
+
+    function field(id, value) {
+      const content = String(value);
+      if (content.length > 99) throw new Error(`Campo Pix ${id} excede o limite do formato.`);
+      return id + String(content.length).padStart(2, "0") + content;
+    }
+
+    function crc16Ccitt(text) {
+      let crc = 0xffff;
+      for (let index = 0; index < text.length; index += 1) {
+        crc ^= text.charCodeAt(index) << 8;
+        for (let bit = 0; bit < 8; bit += 1) {
+          crc = crc & 0x8000 ? (crc << 1) ^ 0x1021 : crc << 1;
+          crc &= 0xffff;
+        }
+      }
+      return crc.toString(16).toUpperCase().padStart(4, "0");
+    }
+
+    function createPixCode(cents) {
+      const amount = (cents / 100).toFixed(2);
+      const merchantAccount = field("00", "br.gov.bcb.pix") + field("01", PIX_KEY);
+      const additionalData = field("05", "***");
+      const payload = [
+        field("00", "01"),
+        field("26", merchantAccount),
+        field("52", "0000"),
+        field("53", "986"),
+        field("54", amount),
+        field("58", "BR"),
+        field("59", PIX_NAME),
+        field("60", PIX_CITY),
+        field("62", additionalData),
+        "6304"
+      ].join("");
+      return payload + crc16Ccitt(payload);
+    }
+
+    async function registerOrder() {
+      const config = window.STORE_SUPABASE_CONFIG;
+      const isConfigured = config
+        && /^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(config.url)
+        && config.anonKey
+        && config.anonKey !== "SUA_CHAVE_ANON_PUBLICA";
+      if (!isConfigured || !window.supabase) {
+        orderStatus.textContent = "Registro administrativo ainda não configurado. O pedido não foi salvo.";
+        orderStatus.classList.add("failure");
+        return;
+      }
+      orderStatus.textContent = "Registrando pedido…";
+      const client = window.supabase.createClient(config.url, config.anonKey);
+      const { error } = await client.from("orders").upsert({
+        id: orderId,
+        player_id: playerId,
+        diamonds: product.amount
+      }, { onConflict: "id", ignoreDuplicates: true });
+      if (error) {
+        orderStatus.textContent = "Não foi possível registrar este pedido na área administrativa. Avise a loja antes de pagar.";
+        orderStatus.classList.add("failure");
+        return;
+      }
+      orderStatus.textContent = "Pedido registrado para acompanhamento da loja.";
+      orderStatus.classList.add("success");
+    }
+
+    async function copyPixCode(code) {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(code);
+        return;
+      }
+      const textarea = document.querySelector("#pix-code");
+      textarea.focus();
+      textarea.select();
+      if (!document.execCommand("copy")) throw new Error("Não foi possível copiar automaticamente.");
+    }
+
+    if (!product || !/^\d{1,24}$/.test(playerId) || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(orderId)) {
+      showError("Pedido inválido ou incompleto. Volte aos pacotes e informe seu ID de jogador novamente.");
+    } else {
+      const price = (product.cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+      const amount = product.amount.toLocaleString("pt-BR");
+      document.querySelector("#order-title").textContent = `${amount} diamantes`;
+      document.querySelector("#price").textContent = price;
+      document.querySelector("#diamonds").textContent = amount;
+      document.querySelector("#player-id").textContent = playerId;
+
+      try {
+        const pixCode = createPixCode(product.cents);
+        document.querySelector("#pix-code").value = pixCode;
+        if (typeof QRCode === "undefined") {
+          document.querySelector("#qr-status").textContent = "QR indisponível agora. Use o código Pix copia e cola abaixo.";
+        } else {
+          new QRCode(document.querySelector("#qrcode"), {
+            text: pixCode,
+            width: 212,
+            height: 212,
+            colorDark: "#111111",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.M
+          });
+          document.querySelector("#qr-status").textContent = "Confira os dados no seu banco antes de pagar.";
+        }
+        registerOrder().catch(() => {
+          orderStatus.textContent = "Erro ao registrar o pedido. Avise a loja antes de pagar.";
+          orderStatus.classList.add("failure");
+        });
+        document.querySelector("#copy-button").addEventListener("click", async () => {
+          const status = document.querySelector("#copy-status");
+          try {
+            await copyPixCode(pixCode);
+            status.textContent = "Código Pix copiado.";
+          } catch (error) {
+            status.textContent = "Não foi possível copiar. Selecione e copie o código acima.";
+          }
+        });
+      } catch (error) {
+        showError("Não foi possível montar o código Pix. Confira os dados de pagamento configurados na loja.");
+      }
+    }
+  </script>
+</body>
+</html>
