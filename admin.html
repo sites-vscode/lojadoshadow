@@ -142,7 +142,7 @@
       ordersMessage.textContent = "Carregando pedidos…";
       const { data, error } = await client
         .from("orders")
-        .select("player_id, item_type, diamonds, created_at")
+        .select("player_id, item_type, product_code, diamonds, created_at")
         .order("created_at", { ascending: false })
         .limit(500);
       if (error) {
@@ -161,7 +161,17 @@
           order.player_id,
           order.item_type === "booyah_pass"
             ? "Passe Booyah (1 un.)"
-            : `${Number(order.diamonds).toLocaleString("pt-BR")} diamantes`,
+            : order.item_type === "emote"
+              ? `${{
+                "emote-tubarao-bebe": "Tubarão Bebê",
+                "emote-aplauso": "Aplauso",
+                "emote-lol": "LOL",
+                "emote-agite-comigo": "Agite Comigo",
+                "emote-o-cisne": "O Cisne",
+                "emote-flores-do-amor": "Flores do Amor",
+                "emote-danca-em-voga": "Dança em Voga"
+              }[order.product_code] || "Emote"} (1 un.)`
+              : `${Number(order.diamonds).toLocaleString("pt-BR")} diamantes`,
           "Pedido iniciado"
         ];
         values.forEach((value) => {
