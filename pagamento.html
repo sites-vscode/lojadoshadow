@@ -144,7 +144,14 @@
       "diamonds-1166": { type: "diamonds", name: "1.166 diamantes", diamonds: 1166, cents: 5890 },
       "diamonds-2398": { type: "diamonds", name: "2.398 diamantes", diamonds: 2398, cents: 11390 },
       "diamonds-6160": { type: "diamonds", name: "6.160 diamantes", diamonds: 6160, cents: 27190 },
-      "booyah-pass": { type: "booyah_pass", name: "Passe Booyah", diamonds: null, cents: 1199 }
+      "booyah-pass": { type: "booyah_pass", name: "Passe Booyah", diamonds: null, cents: 1290 },
+      "emote-tubarao-bebe": { type: "emote", name: "Tubarão Bebê", diamonds: null, cents: 1690 },
+      "emote-aplauso": { type: "emote", name: "Aplauso", diamonds: null, cents: 1290 },
+      "emote-lol": { type: "emote", name: "LOL", diamonds: null, cents: 1290 },
+      "emote-agite-comigo": { type: "emote", name: "Agite Comigo", diamonds: null, cents: 1690 },
+      "emote-o-cisne": { type: "emote", name: "O Cisne", diamonds: null, cents: 1690 },
+      "emote-flores-do-amor": { type: "emote", name: "Flores do Amor", diamonds: null, cents: 3390 },
+      "emote-danca-em-voga": { type: "emote", name: "Dança em Voga", diamonds: null, cents: 1690 }
     };
     const params = new URLSearchParams(window.location.search);
     const legacyPackageCodes = {
@@ -228,6 +235,7 @@
         id: orderId,
         player_id: playerId,
         item_type: product.type,
+        product_code: productCode,
         diamonds: product.diamonds
       });
       if (error) {
