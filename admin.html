@@ -98,7 +98,7 @@
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Data e hora</th><th>ID do jogador</th><th>Diamantes</th><th>Status</th></tr></thead>
+          <thead><tr><th>Data e hora</th><th>ID do jogador</th><th>Produto / quantidade</th><th>Status</th></tr></thead>
           <tbody id="orders-body"></tbody>
         </table>
         <div class="empty" id="empty-state" hidden>Nenhum pedido registrado ainda.</div>
@@ -142,7 +142,7 @@
       ordersMessage.textContent = "Carregando pedidos…";
       const { data, error } = await client
         .from("orders")
-        .select("player_id, diamonds, created_at")
+        .select("player_id, item_type, diamonds, created_at")
         .order("created_at", { ascending: false })
         .limit(500);
       if (error) {
@@ -159,7 +159,9 @@
         const values = [
           Number.isNaN(date.getTime()) ? "Data indisponível" : date.toLocaleString("pt-BR"),
           order.player_id,
-          Number(order.diamonds).toLocaleString("pt-BR"),
+          order.item_type === "booyah_pass"
+            ? "Passe Booyah (1 un.)"
+            : `${Number(order.diamonds).toLocaleString("pt-BR")} diamantes`,
           "Pedido iniciado"
         ];
         values.forEach((value) => {
