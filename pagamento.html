@@ -207,7 +207,8 @@
         diamonds: product.diamonds
       }, { onConflict: "id", ignoreDuplicates: true });
       if (error) {
-        orderStatus.textContent = "Não foi possível registrar este pedido na área administrativa. Avise a loja antes de pagar.";
+        console.error("Erro retornado pelo Supabase ao registrar pedido:", error);
+        orderStatus.textContent = `Não foi possível registrar na área administrativa: ${error.message}`;
         orderStatus.classList.add("failure");
         return;
       }
@@ -253,7 +254,7 @@
         }
         registerOrder().catch((error) => {
           console.error("Erro ao registrar o pedido:", error);
-          orderStatus.textContent = "Erro ao registrar o pedido. Avise a loja antes de pagar.";
+          orderStatus.textContent = `Erro ao registrar o pedido: ${error.message || "falha de conexão com o Supabase."}`;
           orderStatus.classList.add("failure");
         });
         document.querySelector("#copy-button").addEventListener("click", async () => {
