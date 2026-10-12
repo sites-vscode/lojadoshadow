@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#101015">
-  <meta name="description" content="Pague seu pacote de diamantes com Pix. Confira os dados do recebedor no seu banco.">
+  <meta name="description" content="Pague seu pedido de Free Fire com Pix. Confira os dados do recebedor no seu banco.">
   <title>Pagamento Pix — Shadow Store</title>
   <style>
     :root {
@@ -86,7 +86,7 @@
         <div class="order-label">Resumo do pedido</div>
         <h2 id="order-title">Pacote de diamantes</h2>
         <p class="price" id="price"></p>
-        <div class="detail"><span>Diamantes</span><strong id="diamonds"></strong></div>
+        <div class="detail"><span>Produto</span><strong id="product-name"></strong></div>
         <div class="detail"><span>ID de jogador</span><strong id="player-id"></strong></div>
         <div class="detail"><span>Recebedor</span><strong>Carlos Pingas</strong></div>
         <div class="detail"><span>Chave Pix</span><strong>doacoespix23@gmail.com</strong></div>
@@ -95,7 +95,7 @@
       </section>
       <section class="payment" aria-labelledby="payment-title">
         <h2 id="payment-title">Pague com Pix</h2>
-        <p>QR Code gerado para o valor deste pacote</p>
+        <p>QR Code gerado para o valor deste pedido</p>
         <div id="qrcode" role="img" aria-label="QR Code Pix do pedido"></div>
         <p id="qr-status" role="status" aria-live="polite"></p>
         <button class="copy-button" id="copy-button" type="button">Copiar código Pix <span aria-hidden="true">⧉</span></button>
@@ -114,17 +114,33 @@
     const PIX_NAME = "CARLOS PINGAS";
     const PIX_CITY = "S M DO OESTE";
     const products = {
-      "110": { amount: 110, cents: 590 },
-      "341": { amount: 341, cents: 1890 },
-      "572": { amount: 572, cents: 2790 },
-      "1166": { amount: 1166, cents: 5890 },
-      "2398": { amount: 2398, cents: 11390 },
-      "6160": { amount: 6160, cents: 27190 }
+      "diamonds-110": { type: "diamonds", name: "110 diamantes", diamonds: 110, cents: 590 },
+      "diamonds-341": { type: "diamonds", name: "341 diamantes", diamonds: 341, cents: 1890 },
+      "diamonds-572": { type: "diamonds", name: "572 diamantes", diamonds: 572, cents: 2790 },
+      "diamonds-1166": { type: "diamonds", name: "1.166 diamantes", diamonds: 1166, cents: 5890 },
+      "diamonds-2398": { type: "diamonds", name: "2.398 diamantes", diamonds: 2398, cents: 11390 },
+      "diamonds-6160": { type: "diamonds", name: "6.160 diamantes", diamonds: 6160, cents: 27190 },
+      "booyah-pass": { type: "booyah_pass", name: "Passe Booyah", diamonds: null, cents: 1199 }
     };
     const params = new URLSearchParams(window.location.search);
-    const product = products[params.get("pacote")];
+    const legacyPackageCodes = {
+      "110": "diamonds-110",
+      "341": "diamonds-341",
+      "572": "diamonds-572",
+      "1166": "diamonds-1166",
+      "2398": "diamonds-2398",
+      "6160": "diamonds-6160"
+    };
+    const productCode = params.get("produto")
+      || legacyPackageCodes[params.get("pacote")]
+      || params.get("pacote");
+    const product = products[productCode];
     const playerId = params.get("jogador") || "";
-    const orderId = params.get("pedido") || "";
+    const orderId = params.get("pedido") || (
+      window.crypto && typeof window.crypto.randomUUID === "function"
+        ? window.crypto.randomUUID()
+        : ""
+    );
     const pageError = document.querySelector("#page-error");
     const orderStatus = document.querySelector("#order-status");
 
@@ -187,7 +203,8 @@
       const { error } = await client.from("orders").upsert({
         id: orderId,
         player_id: playerId,
-        diamonds: product.amount
+        item_type: product.type,
+        diamonds: product.diamonds
       }, { onConflict: "id", ignoreDuplicates: true });
       if (error) {
         orderStatus.textContent = "Não foi possível registrar este pedido na área administrativa. Avise a loja antes de pagar.";
@@ -210,13 +227,12 @@
     }
 
     if (!product || !/^\d{1,24}$/.test(playerId) || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(orderId)) {
-      showError("Pedido inválido ou incompleto. Volte aos pacotes e informe seu ID de jogador novamente.");
+      showError("Não consegui identificar o produto, o ID do jogador ou o pedido. Volte à loja publicada e tente novamente. Se continuar, publique juntos os arquivos index.html e pagamento.html.");
     } else {
       const price = (product.cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-      const amount = product.amount.toLocaleString("pt-BR");
-      document.querySelector("#order-title").textContent = `${amount} diamantes`;
+      document.querySelector("#order-title").textContent = product.name;
       document.querySelector("#price").textContent = price;
-      document.querySelector("#diamonds").textContent = amount;
+      document.querySelector("#product-name").textContent = product.name;
       document.querySelector("#player-id").textContent = playerId;
 
       try {
@@ -235,7 +251,8 @@
           });
           document.querySelector("#qr-status").textContent = "Confira os dados no seu banco antes de pagar.";
         }
-        registerOrder().catch(() => {
+        registerOrder().catch((error) => {
+          console.error("Erro ao registrar o pedido:", error);
           orderStatus.textContent = "Erro ao registrar o pedido. Avise a loja antes de pagar.";
           orderStatus.classList.add("failure");
         });
