@@ -1,7 +1,6 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='24' font-size='24'>💎</text></svg>">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#101015">
@@ -225,12 +224,19 @@
       letter-spacing: .05em;
       text-transform: uppercase;
     }
+    .offer-tag {
+      top: 32px;
+      background: linear-gradient(100deg, #198d62, #35c78b);
+    }
     .product-gem { margin: 8px 0 4px; color: #d59bff; font-size: 34px; text-shadow: 0 0 20px rgba(195, 112, 255, .4); }
     .product h3 { margin: 0; font-size: 20px; letter-spacing: -.04em; }
     .product-sub { min-height: 20px; margin: 2px 0 18px; color: var(--muted); font-size: 11px; }
     .product-price { margin: 0 0 14px; font-size: 25px; font-weight: 900; letter-spacing: -.04em; }
     .product-price small { color: var(--muted); font-size: 11px; font-weight: 500; letter-spacing: 0; }
+    .product-old-price { display: block; margin: -9px 0 10px; color: #98929f; font-size: 12px; text-decoration: line-through; }
+    .offer-status { margin: 8px 0 0; color: #ffc779; text-align: center; font-size: 11px; }
     .product .button { width: 100%; padding: 11px; font-size: 12px; }
+    .product .button:disabled { cursor: wait; opacity: .65; }
     .price-note { margin: 16px 0 0; color: #8e8998; text-align: center; font-size: 10px; }
 
     .how { padding: 69px 0; background: #15151a; }
@@ -404,9 +410,9 @@
 
     <div class="perks">
       <div class="perk-row container">
-        <div class="perk"><span class="perk-icon" aria-hidden="true">💬</span><span><strong>Atendimento direto</strong><small>Tire suas dúvidas com a loja pelo suporte no whatsapp.</small></span></div>
-        <div class="perk"><span class="perk-icon" aria-hidden="true">🧾</span><span><strong>Pedido transparente</strong><small>Se possível, envie o comprovante pelo suporte.</small></span></div>
-        <div class="perk"><span class="perk-icon" aria-hidden="true">⏱️</span><span><strong>Entrega em minutos</strong><small>Entrega realizada em até 10 minutos após a compra.</small></span></div>
+        <div class="perk"><span class="perk-icon" aria-hidden="true">💬</span><span><strong>Atendimento direto</strong><small>Tire suas dúvidas com a loja</small></span></div>
+        <div class="perk"><span class="perk-icon" aria-hidden="true">🧾</span><span><strong>Pedido transparente</strong><small>Confira tudo antes de confirmar</small></span></div>
+        <div class="perk"><span class="perk-icon" aria-hidden="true">🎮</span><span><strong>Feito para a tropa</strong><small>Escolha o pacote ideal pra você</small></span></div>
       </div>
     </div>
 
@@ -420,6 +426,7 @@
         <span class="trust-note"><span aria-hidden="true">✨</span> Pix gerado para o produto escolhido</span>
       </div>
       <div class="cards" id="product-list" aria-live="polite"></div>
+      <p class="offer-status" id="offer-status" role="status" aria-live="polite"></p>
       <p class="price-note">Confira o valor e os dados do Pix no seu banco antes de confirmar o pagamento.</p>
     </section>
 
@@ -433,6 +440,7 @@
         <span class="trust-note"><span aria-hidden="true">🎟️</span> R$ 12,90 por unidade</span>
       </div>
       <div class="cards pass-cards" id="pass-list" aria-live="polite"></div>
+      <p class="offer-status" id="pass-offer-status" role="status" aria-live="polite"></p>
       <p class="price-note">Confira o valor e os dados do Pix no seu banco antes de confirmar o pagamento.</p>
     </section>
 
@@ -446,6 +454,7 @@
         <span class="trust-note"><span aria-hidden="true">💃</span> Vários estilos para escolher</span>
       </div>
       <div class="cards" id="emote-list" aria-live="polite"></div>
+      <p class="offer-status" id="emote-offer-status" role="status" aria-live="polite"></p>
       <p class="price-note">Preços de venda por unidade, conforme informado. Custos e lucro não foram incluídos.</p>
     </section>
 
@@ -510,6 +519,8 @@
     </section>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" referrerpolicy="no-referrer" crossorigin="anonymous"></script>
+  <script src="supabase-config.js"></script>
   <script>
     const products = [
       { code: "diamonds-110", type: "diamonds", name: "110 diamantes", amount: 110, price: "R$ 5,90", subtitle: "Pra dar aquele primeiro upgrade", cents: 590 },
@@ -531,6 +542,12 @@
     const productList = document.querySelector("#product-list");
     const passList = document.querySelector("#pass-list");
     const emoteList = document.querySelector("#emote-list");
+    const activeOffers = new Map();
+    const offerStatusByType = {
+      diamonds: document.querySelector("#offer-status"),
+      booyah_pass: document.querySelector("#pass-offer-status"),
+      emote: document.querySelector("#emote-offer-status")
+    };
     const modal = document.querySelector("#order-modal");
     const playerIdInput = document.querySelector("#player-id");
     const formMessage = document.querySelector("#form-message");
@@ -541,12 +558,17 @@
       card.className = `product${product.featured ? " featured" : ""}${product.type === "booyah_pass" ? " pass-card" : ""}${product.type === "emote" ? " emote-card" : ""}`;
       const tag = product.tag ? `<span class="product-tag">${product.tag}</span>` : "";
       card.innerHTML = `${tag}
+        <span class="product-tag offer-tag" data-offer-badge hidden></span>
         <div class="product-gem" aria-hidden="true">${product.icon || "◆"}</div>
         <h3>${product.name}</h3>
         <p class="product-sub">${product.subtitle}</p>
-        <p class="product-price">${product.price} <small>/ ${product.unit || "pacote"}</small></p>
+        <p class="product-price"><span data-current-price>${product.price}</span> <small>/ ${product.unit || "pacote"}</small></p>
+        <del class="product-old-price" data-old-price hidden></del>
         <button class="button" type="button">Comprar agora <span aria-hidden="true">→</span></button>`;
-      card.querySelector("button").addEventListener("click", () => openOrder(product));
+      const button = card.querySelector("button");
+      button.disabled = true;
+      button.addEventListener("click", () => openOrder(product));
+      card.dataset.productCode = product.code;
       const productListTarget = product.type === "booyah_pass"
         ? passList
         : product.type === "emote"
@@ -555,10 +577,70 @@
       productListTarget.append(card);
     });
 
+    function renderOffer(product, offer) {
+      const card = document.querySelector(`[data-product-code="${product.code}"]`);
+      if (!card) return;
+      const currentPrice = card.querySelector("[data-current-price]");
+      const oldPrice = card.querySelector("[data-old-price]");
+      const badge = card.querySelector("[data-offer-badge]");
+      if (offer) {
+        const discountedCents = Math.round(product.cents * (100 - offer.discount_percent) / 100);
+        currentPrice.textContent = (discountedCents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+        oldPrice.textContent = product.price;
+        oldPrice.hidden = false;
+        badge.textContent = `${offer.discount_percent}% OFF`;
+        badge.hidden = false;
+        activeOffers.set(product.code, offer);
+      } else {
+        currentPrice.textContent = product.price;
+        oldPrice.hidden = true;
+        badge.hidden = true;
+        activeOffers.delete(product.code);
+      }
+    }
+
+    async function loadOffers() {
+      const config = window.STORE_SUPABASE_CONFIG;
+      if (!config || !/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(config.url) || !config.anonKey || config.anonKey === "SUA_CHAVE_ANON_PUBLICA") {
+        Object.values(offerStatusByType).forEach((status) => {
+          status.textContent = "A loja não conseguiu confirmar os preços e ofertas. Avise o suporte antes de comprar.";
+        });
+        return;
+      }
+      try {
+        if (!window.supabase) throw new Error("A conexão com o sistema de ofertas não carregou.");
+        const client = window.supabase.createClient(config.url, config.anonKey);
+        const { data, error } = await client
+          .from("store_offers")
+          .select("product_code, discount_percent, starts_at, ends_at")
+          .lte("starts_at", new Date().toISOString())
+          .gt("ends_at", new Date().toISOString());
+        if (error) throw error;
+        const offers = new Map(data.map((offer) => [offer.product_code, offer]));
+        products.forEach((product) => renderOffer(product, offers.get(product.code)));
+        products.forEach((product) => {
+          document.querySelector(`[data-product-code="${product.code}"] button`).disabled = false;
+        });
+      } catch (error) {
+        console.error("Não foi possível carregar ofertas:", error);
+        Object.values(offerStatusByType).forEach((status) => {
+          status.textContent = "Não foi possível carregar as ofertas. Atualize a página antes de comprar.";
+        });
+      }
+    }
+
     function openOrder(product) {
       selectedProduct = product;
       document.querySelector("#selected-package").textContent = product.name;
-      document.querySelector("#selected-price").textContent = product.price;
+      let offer = activeOffers.get(product.code);
+      if (offer && (new Date(offer.starts_at).getTime() > Date.now() || new Date(offer.ends_at).getTime() <= Date.now())) {
+        renderOffer(product, null);
+        offer = null;
+      }
+      const priceCents = offer
+        ? Math.round(product.cents * (100 - offer.discount_percent) / 100)
+        : product.cents;
+      document.querySelector("#selected-price").textContent = (priceCents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
       formMessage.textContent = "";
       modal.hidden = false;
       document.body.style.overflow = "hidden";
@@ -601,6 +683,8 @@
       });
       window.location.href = `pagamento.html?${params.toString()}`;
     });
+
+    loadOffers();
   </script>
 </body>
 </html>
