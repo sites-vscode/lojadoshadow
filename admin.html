@@ -66,6 +66,7 @@
     .product-option { display: flex; align-items: center; gap: 9px; margin: 0; padding: 9px 10px; border: 1px solid var(--line); border-radius: 9px; background: #17161c; font-size: 12px; }
     .offer-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 16px; }
     .offer-delete { padding: 7px 10px; background: #632d3c; }
+    .offer-cancel-all { border: 1px solid rgba(255, 120, 120, .3); background: #632d3c; }
     @media (max-width: 560px) {
       .offer-form-grid, .product-options { grid-template-columns: 1fr; }
     }
@@ -155,7 +156,10 @@
       </form>
       <div class="toolbar" style="margin-top:25px">
         <p>Ofertas ativas e expiradas</p>
-        <button class="secondary" id="refresh-offers-button" type="button">Atualizar ofertas</button>
+        <div class="toolbar-actions">
+          <button class="secondary" id="refresh-offers-button" type="button">Atualizar ofertas</button>
+          <button class="offer-cancel-all" id="cancel-all-offers-button" type="button">Cancelar todas as ofertas</button>
+        </div>
       </div>
       <div class="table-wrap">
         <table>
@@ -183,6 +187,7 @@
     const offersBody = document.querySelector("#offers-body");
     const offersEmpty = document.querySelector("#offers-empty");
     const saveOfferButton = document.querySelector("#save-offer-button");
+    const cancelAllOffersButton = document.querySelector("#cancel-all-offers-button");
     const durationInput = document.querySelector("#duration");
     const durationUnit = document.querySelector("#duration-unit");
     const adminSections = document.querySelector("#admin-sections");
@@ -396,6 +401,43 @@
 
     document.querySelector("#refresh-button").addEventListener("click", loadOrders);
     document.querySelector("#refresh-offers-button").addEventListener("click", loadOffers);
+    cancelAllOffersButton.addEventListener("click", async () => {
+      if (!client) return;
+      const confirmed = window.confirm(
+        "Cancelar todas as ofertas ativas e agendadas? Os preços promocionais serão encerrados e o histórico ficará na lista."
+      );
+      if (!confirmed) return;
+
+      cancelAllOffersButton.disabled = true;
+      offerMessage.classList.remove("success");
+      offerMessage.textContent = "Cancelando ofertas…";
+      const now = new Date().toISOString();
+      let data;
+      let error;
+      try {
+        ({ data, error } = await client
+          .from("store_offers")
+          .update({ ends_at: now, updated_at: now })
+          .gt("ends_at", now)
+          .select("product_code"));
+      } catch (requestError) {
+        cancelAllOffersButton.disabled = false;
+        offerMessage.textContent = `Falha de conexão ao cancelar ofertas: ${requestError.message}`;
+        return;
+      }
+      cancelAllOffersButton.disabled = false;
+      if (error) {
+        offerMessage.textContent = `Não foi possível cancelar as ofertas: ${error.message}`;
+        return;
+      }
+
+      const count = data.length;
+      if (!(await loadOffers())) return;
+      offerMessage.textContent = count
+        ? `${count} oferta${count === 1 ? "" : "s"} cancelada${count === 1 ? "" : "s"}. Os preços originais voltam a valer quando a loja atualizar.`
+        : "Não havia ofertas ativas ou agendadas para cancelar.";
+      offerMessage.classList.add("success");
+    });
     document.querySelector("#offer-form").addEventListener("submit", async (event) => {
       event.preventDefault();
       if (!client) return;
