@@ -1,7 +1,6 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='24' font-size='24'>🔒</text></svg>">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#101015">
@@ -18,7 +17,7 @@
     }
     * { box-sizing: border-box; }
     body { min-height: 100vh; margin: 0; background: radial-gradient(ellipse at 50% 0, rgba(132, 51, 190, .15), transparent 45%), var(--bg); color: #f8f7fb; }
-    button, input { font: inherit; }
+    button, input, select { font: inherit; }
     a { color: inherit; text-decoration: none; }
     .container { width: min(980px, calc(100% - 32px)); margin: 0 auto; }
     header { border-bottom: 1px solid var(--line); }
@@ -29,6 +28,9 @@
     .back { color: #c8c3cf; font-size: 12px; font-weight: 700; }
     main { padding: 48px 0; }
     .heading { margin-bottom: 22px; }
+    .admin-sections { display: flex; flex-wrap: wrap; gap: 9px; margin: -8px 0 20px; }
+    .admin-sections a { padding: 8px 12px; border: 1px solid var(--line); border-radius: 9px; background: #201e27; color: #d8c0ed; font-size: 11px; font-weight: 700; }
+    .admin-sections a:hover { border-color: rgba(197, 112, 255, .5); }
     .label { color: #cb83ff; font-size: 10px; font-weight: 900; letter-spacing: .13em; text-transform: uppercase; }
     h1 { margin: 8px 0 5px; font-size: clamp(28px, 5vw, 38px); letter-spacing: -.05em; }
     .heading p { margin: 0; color: var(--muted); font-size: 13px; }
@@ -37,11 +39,12 @@
     .panel-copy { margin: 0 0 19px; color: var(--muted); font-size: 12px; line-height: 1.6; }
     .field { margin: 14px 0; }
     label { display: block; margin-bottom: 6px; font-size: 12px; font-weight: 700; }
-    input { width: 100%; max-width: 390px; padding: 11px 12px; border: 1px solid #393640; border-radius: 9px; background: #131318; color: white; }
+    input:not([type="checkbox"]), select { width: 100%; max-width: 390px; padding: 11px 12px; border: 1px solid #393640; border-radius: 9px; background: #131318; color: white; }
+    input[type="checkbox"] { width: 16px; height: 16px; accent-color: #a855f7; }
     button { border: 0; border-radius: 10px; padding: 11px 15px; background: linear-gradient(100deg, #9a42ee, #d43eb4); color: white; font-size: 12px; font-weight: 800; cursor: pointer; }
     button:disabled { cursor: wait; opacity: .65; }
     button.secondary { border: 1px solid var(--line); background: #27252e; }
-    button:focus-visible, input:focus-visible, a:focus-visible { outline: 2px solid #e3b6ff; outline-offset: 3px; }
+    button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible { outline: 2px solid #e3b6ff; outline-offset: 3px; }
     .message { min-height: 19px; margin: 12px 0 0; color: #ffd089; font-size: 12px; }
     .message.success { color: #83e3b2; }
     [hidden] { display: none !important; }
@@ -56,6 +59,16 @@
     td { color: #eeeaf2; }
     .empty { padding: 27px 12px; color: var(--muted); text-align: center; }
     .notice { margin-top: 15px; color: #8f8a97; font-size: 10px; line-height: 1.6; }
+    #offers-panel { margin-top: 24px; }
+    .offer-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .offer-form-grid .field { margin: 0; }
+    .product-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px 14px; margin: 10px 0 18px; }
+    .product-option { display: flex; align-items: center; gap: 9px; margin: 0; padding: 9px 10px; border: 1px solid var(--line); border-radius: 9px; background: #17161c; font-size: 12px; }
+    .offer-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 16px; }
+    .offer-delete { padding: 7px 10px; background: #632d3c; }
+    @media (max-width: 560px) {
+      .offer-form-grid, .product-options { grid-template-columns: 1fr; }
+    }
     @media (max-width: 560px) {
       main { padding: 33px 0; }
       .panel { padding: 18px; }
@@ -77,6 +90,10 @@
       <h1>Pedidos da loja</h1>
       <p>Consulte os pedidos iniciados na página de pagamento.</p>
     </div>
+    <nav class="admin-sections" id="admin-sections" aria-label="Seções administrativas" hidden>
+      <a href="#orders-panel">Pedidos</a>
+      <a href="#offers-panel">Centro de ofertas</a>
+    </nav>
 
     <section class="panel" id="login-panel" aria-labelledby="login-title">
       <h2 id="login-title">Entrar como administrador</h2>
@@ -107,6 +124,47 @@
       <p class="notice">A lista registra pedidos quando a página Pix é aberta. Ela não confirma se o pagamento foi recebido; confira os pagamentos no aplicativo do seu banco.</p>
       <p class="message" id="orders-message" role="status" aria-live="polite"></p>
     </section>
+
+    <section class="panel" id="offers-panel" hidden aria-labelledby="offers-title">
+      <h2 id="offers-title">Centro de ofertas</h2>
+      <p class="panel-copy">Escolha o desconto, a duração e os produtos. Uma nova oferta substitui a anterior para os mesmos itens.</p>
+      <form id="offer-form">
+        <div class="offer-form-grid">
+          <div class="field">
+            <label for="discount-percent">Desconto (%)</label>
+            <input id="discount-percent" name="discountPercent" type="number" min="1" max="99" step="1" value="15" required>
+          </div>
+          <div class="field">
+            <label for="duration">Duração</label>
+            <input id="duration" name="duration" type="number" min="1" max="8760" step="1" value="24" required>
+          </div>
+          <div class="field">
+            <label for="duration-unit">Unidade da duração</label>
+            <select id="duration-unit" name="durationUnit">
+              <option value="hours">Horas</option>
+              <option value="days">Dias</option>
+            </select>
+          </div>
+        </div>
+        <fieldset style="border:0;padding:0;margin:14px 0">
+          <legend class="panel-copy" style="margin-bottom:8px">Produtos que receberão a oferta</legend>
+          <div class="product-options" id="offer-products"></div>
+        </fieldset>
+        <button id="save-offer-button" type="submit">Ativar oferta</button>
+        <p class="message" id="offer-message" role="status" aria-live="polite"></p>
+      </form>
+      <div class="toolbar" style="margin-top:25px">
+        <p>Ofertas ativas e expiradas</p>
+        <button class="secondary" id="refresh-offers-button" type="button">Atualizar ofertas</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Produto</th><th>Desconto</th><th>Expira em</th><th>Status</th><th>Ação</th></tr></thead>
+          <tbody id="offers-body"></tbody>
+        </table>
+        <div class="empty" id="offers-empty" hidden>Nenhuma oferta cadastrada.</div>
+      </div>
+    </section>
   </main>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" referrerpolicy="no-referrer" crossorigin="anonymous"></script>
   <script src="supabase-config.js"></script>
@@ -119,8 +177,50 @@
     const orderCount = document.querySelector("#order-count");
     const emptyState = document.querySelector("#empty-state");
     const loginButton = document.querySelector("#login-button");
+    const offersPanel = document.querySelector("#offers-panel");
+    const offerMessage = document.querySelector("#offer-message");
+    const offerProductsElement = document.querySelector("#offer-products");
+    const offersBody = document.querySelector("#offers-body");
+    const offersEmpty = document.querySelector("#offers-empty");
+    const saveOfferButton = document.querySelector("#save-offer-button");
+    const durationInput = document.querySelector("#duration");
+    const durationUnit = document.querySelector("#duration-unit");
+    const adminSections = document.querySelector("#admin-sections");
     const config = window.STORE_SUPABASE_CONFIG;
+    const offerProducts = [
+      { code: "diamonds-110", name: "110 diamantes" },
+      { code: "diamonds-341", name: "341 diamantes" },
+      { code: "diamonds-572", name: "572 diamantes" },
+      { code: "diamonds-1166", name: "1.166 diamantes" },
+      { code: "diamonds-2398", name: "2.398 diamantes" },
+      { code: "diamonds-6160", name: "6.160 diamantes" },
+      { code: "booyah-pass", name: "Passe Booyah" },
+      { code: "emote-tubarao-bebe", name: "🦈 Tubarão Bebê" },
+      { code: "emote-aplauso", name: "👏 Aplauso" },
+      { code: "emote-lol", name: "😂 LOL" },
+      { code: "emote-agite-comigo", name: "💃 Agite Comigo" },
+      { code: "emote-o-cisne", name: "🦢 O Cisne" },
+      { code: "emote-flores-do-amor", name: "🌹 Flores do Amor" },
+      { code: "emote-danca-em-voga", name: "🪩 Dança em Voga" }
+    ];
     let client = null;
+
+    offerProducts.forEach((product) => {
+      const label = document.createElement("label");
+      label.className = "product-option";
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.name = "products";
+      checkbox.value = product.code;
+      const name = document.createElement("span");
+      name.textContent = product.name;
+      label.append(checkbox, name);
+      offerProductsElement.append(label);
+    });
+
+    durationUnit.addEventListener("change", () => {
+      durationInput.max = durationUnit.value === "days" ? "365" : "8760";
+    });
 
     function setLoginMessage(text, isSuccess) {
       loginMessage.textContent = text;
@@ -137,6 +237,8 @@
     function showLogin() {
       loginPanel.hidden = false;
       ordersPanel.hidden = true;
+      offersPanel.hidden = true;
+      adminSections.hidden = true;
     }
 
     async function loadOrders() {
@@ -185,6 +287,56 @@
       ordersMessage.textContent = "";
     }
 
+    async function loadOffers() {
+      offerMessage.textContent = "";
+      offerMessage.classList.remove("success");
+      let data;
+      let error;
+      try {
+        ({ data, error } = await client
+          .from("store_offers")
+          .select("product_code, discount_percent, starts_at, ends_at")
+          .order("ends_at", { ascending: true }));
+      } catch (requestError) {
+        offerMessage.textContent = `Falha de conexão ao carregar ofertas: ${requestError.message}`;
+        return false;
+      }
+      if (error) {
+        offerMessage.textContent = `Não foi possível carregar ofertas: ${error.message}`;
+        return false;
+      }
+      offersBody.replaceChildren();
+      offersEmpty.hidden = data.length !== 0;
+      const now = Date.now();
+      data.forEach((offer) => {
+        const product = offerProducts.find((item) => item.code === offer.product_code);
+        const row = document.createElement("tr");
+        const expiresAt = new Date(offer.ends_at);
+        const isActive = new Date(offer.starts_at).getTime() <= now && expiresAt.getTime() > now;
+        const values = [
+          product ? product.name : offer.product_code,
+          `${offer.discount_percent}%`,
+          Number.isNaN(expiresAt.getTime()) ? "Data indisponível" : expiresAt.toLocaleString("pt-BR"),
+          isActive ? "Ativa" : "Expirada"
+        ];
+        values.forEach((value) => {
+          const cell = document.createElement("td");
+          cell.textContent = value;
+          row.append(cell);
+        });
+        const actionCell = document.createElement("td");
+        const removeButton = document.createElement("button");
+        removeButton.type = "button";
+        removeButton.className = "offer-delete";
+        removeButton.dataset.productCode = offer.product_code;
+        removeButton.textContent = "Remover";
+        actionCell.append(removeButton);
+        row.append(actionCell);
+        offersBody.append(row);
+      });
+      return true;
+    }
+
     async function openAdmin(user) {
       const { data, error } = await client
         .from("store_admins")
@@ -205,7 +357,9 @@
       }
       loginPanel.hidden = true;
       ordersPanel.hidden = false;
-      await loadOrders();
+      offersPanel.hidden = false;
+      adminSections.hidden = false;
+      await Promise.all([loadOrders(), loadOffers()]);
     }
 
     if (!validConfig() || !window.supabase) {
@@ -241,6 +395,88 @@
     });
 
     document.querySelector("#refresh-button").addEventListener("click", loadOrders);
+    document.querySelector("#refresh-offers-button").addEventListener("click", loadOffers);
+    document.querySelector("#offer-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if (!client) return;
+      const offerForm = event.currentTarget;
+      const form = new FormData(offerForm);
+      const discountPercent = Number(form.get("discountPercent"));
+      const duration = Number(form.get("duration"));
+      const durationUnit = form.get("durationUnit");
+      const selectedCodes = form.getAll("products").map(String);
+      const maxDuration = durationUnit === "days" ? 365 : 8760;
+      if (!Number.isInteger(discountPercent) || discountPercent < 1 || discountPercent > 99) {
+        offerMessage.textContent = "O desconto precisa ser um número inteiro entre 1% e 99%.";
+        return;
+      }
+      if (!Number.isInteger(duration) || duration < 1 || duration > maxDuration) {
+        offerMessage.textContent = `A duração deve ser de 1 a ${maxDuration} ${durationUnit === "days" ? "dias" : "horas"}.`;
+        return;
+      }
+      if (selectedCodes.length === 0 || selectedCodes.some((code) => !offerProducts.some((product) => product.code === code))) {
+        offerMessage.textContent = "Selecione pelo menos um produto válido para a oferta.";
+        return;
+      }
+      const startsAt = new Date();
+      const endsAt = new Date(startsAt.getTime() + duration * (durationUnit === "days" ? 86400000 : 3600000));
+      const offerRows = selectedCodes.map((productCode) => ({
+        product_code: productCode,
+        discount_percent: discountPercent,
+        starts_at: startsAt.toISOString(),
+        ends_at: endsAt.toISOString(),
+        updated_at: startsAt.toISOString()
+      }));
+      saveOfferButton.disabled = true;
+      offerMessage.textContent = "Salvando oferta…";
+      let error;
+      try {
+        ({ error } = await client
+          .from("store_offers")
+          .upsert(offerRows, { onConflict: "product_code" }));
+      } catch (requestError) {
+        saveOfferButton.disabled = false;
+        offerMessage.textContent = `Falha de conexão ao salvar a oferta: ${requestError.message}`;
+        return;
+      }
+      saveOfferButton.disabled = false;
+      if (error) {
+        offerMessage.textContent = `Não foi possível salvar a oferta: ${error.message}`;
+        return;
+      }
+      offerForm.reset();
+      document.querySelector("#discount-percent").value = "15";
+      document.querySelector("#duration").value = "24";
+      if (await loadOffers()) {
+        offerMessage.textContent = "Oferta ativada. Ela aparecerá na loja e expirará automaticamente.";
+        offerMessage.classList.add("success");
+      }
+    });
+    offersBody.addEventListener("click", async (event) => {
+      const button = event.target.closest("button[data-product-code]");
+      if (!button || !client) return;
+      button.disabled = true;
+      let error;
+      try {
+        ({ error } = await client
+          .from("store_offers")
+          .delete()
+          .eq("product_code", button.dataset.productCode));
+      } catch (requestError) {
+        button.disabled = false;
+        offerMessage.textContent = `Falha de conexão ao remover a oferta: ${requestError.message}`;
+        return;
+      }
+      if (error) {
+        button.disabled = false;
+        offerMessage.textContent = `Não foi possível remover a oferta: ${error.message}`;
+        return;
+      }
+      if (await loadOffers()) {
+        offerMessage.textContent = "Oferta removida.";
+        offerMessage.classList.add("success");
+      }
+    });
     document.querySelector("#logout-button").addEventListener("click", async () => {
       const { error } = await client.auth.signOut();
       if (error) {
