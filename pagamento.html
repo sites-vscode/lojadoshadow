@@ -1,7 +1,6 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='24' font-size='24'>💵</text></svg>">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#101015">
@@ -38,6 +37,8 @@
     .order-label { color: var(--muted); font-size: 11px; }
     .order h2 { margin: 5px 0 20px; font-size: 24px; letter-spacing: -.04em; }
     .price { margin: 0 0 20px; color: #d39aff; font-size: 34px; font-weight: 900; letter-spacing: -.05em; }
+    .discount-note { margin: -14px 0 18px; color: #83e3b2; font-size: 11px; font-weight: 700; }
+    .discount-note[hidden] { display: none; }
     .detail { display: flex; justify-content: space-between; gap: 14px; padding: 12px 0; border-top: 1px solid var(--line); font-size: 12px; }
     .detail span { color: var(--muted); }
     .detail strong { text-align: right; }
@@ -111,6 +112,7 @@
         <div class="order-label">Resumo do pedido</div>
         <h2 id="order-title">Pacote de diamantes</h2>
         <p class="price" id="price"></p>
+        <p class="discount-note" id="discount-note" hidden></p>
         <div class="detail"><span>Produto</span><strong id="product-name"></strong></div>
         <div class="detail"><span>ID de jogador</span><strong id="player-id"></strong></div>
         <div class="detail"><span>Recebedor</span><strong>Carlos Pingas</strong></div>
@@ -175,6 +177,7 @@
     );
     const pageError = document.querySelector("#page-error");
     const orderStatus = document.querySelector("#order-status");
+    let finalPriceCents = product ? product.cents : 0;
 
     function showError(message) {
       pageError.textContent = message;
@@ -249,6 +252,27 @@
       orderStatus.classList.add("success");
     }
 
+    async function getActiveOffer() {
+      const config = window.STORE_SUPABASE_CONFIG;
+      const configured = config
+        && /^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(config.url)
+        && config.anonKey
+        && config.anonKey !== "SUA_CHAVE_ANON_PUBLICA";
+      if (!configured) return null;
+      if (!window.supabase) throw new Error("Não foi possível carregar a conexão com o sistema de ofertas.");
+      const client = window.supabase.createClient(config.url, config.anonKey);
+      const now = new Date().toISOString();
+      const { data, error } = await client
+        .from("store_offers")
+        .select("discount_percent")
+        .eq("product_code", productCode)
+        .lte("starts_at", now)
+        .gt("ends_at", now)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    }
+
     async function copyPixCode(code) {
       if (navigator.clipboard && window.isSecureContext) {
         await navigator.clipboard.writeText(code);
@@ -263,14 +287,27 @@
     if (!product || !/^\d{1,24}$/.test(playerId) || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(orderId)) {
       showError("Não consegui identificar o produto, o ID do jogador ou o pedido. Volte à loja publicada e tente novamente. Se continuar, publique juntos os arquivos index.html e pagamento.html.");
     } else {
-      const price = (product.cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-      document.querySelector("#order-title").textContent = product.name;
-      document.querySelector("#price").textContent = price;
-      document.querySelector("#product-name").textContent = product.name;
-      document.querySelector("#player-id").textContent = playerId;
-
-      try {
-        const pixCode = createPixCode(product.cents);
+      async function initializePayment() {
+        document.querySelector("#order-title").textContent = product.name;
+        document.querySelector("#product-name").textContent = product.name;
+        document.querySelector("#player-id").textContent = playerId;
+        try {
+          const offer = await getActiveOffer();
+          if (offer) {
+            finalPriceCents = Math.round(product.cents * (100 - offer.discount_percent) / 100);
+            const discountNote = document.querySelector("#discount-note");
+            discountNote.textContent = `Oferta de ${offer.discount_percent}% aplicada`;
+            discountNote.hidden = false;
+          }
+        } catch (error) {
+          console.error("Não foi possível verificar a oferta ativa:", error);
+          showError("Não foi possível verificar as ofertas ativas. Atualize a página e tente novamente antes de pagar.");
+          return;
+        }
+        const price = (finalPriceCents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+        document.querySelector("#price").textContent = price;
+        try {
+        const pixCode = createPixCode(finalPriceCents);
         document.querySelector("#pix-code").value = pixCode;
         if (typeof QRCode === "undefined") {
           document.querySelector("#qr-status").textContent = "QR indisponível agora. Use o código Pix copia e cola abaixo.";
@@ -299,9 +336,12 @@
             status.textContent = "Não foi possível copiar. Selecione e copie o código acima.";
           }
         });
-      } catch (error) {
-        showError("Não foi possível montar o código Pix. Confira os dados de pagamento configurados na loja.");
+        } catch (error) {
+          console.error("Não foi possível montar o pagamento Pix:", error);
+          showError("Não foi possível montar o código Pix. Confira os dados de pagamento configurados na loja.");
+        }
       }
+      initializePayment();
     }
   </script>
 </body>
