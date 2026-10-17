@@ -106,6 +106,7 @@
     const continueButton = giftCardForm.querySelector('button[type="submit"]');
     const unavailableAmounts = new Set();
     let availabilityLoaded = false;
+    let availabilityFailed = false;
     continueButton.disabled = true;
     continueButton.textContent = "Verificando disponibilidade…";
 
@@ -131,13 +132,20 @@
     });
 
     async function loadAvailability() {
+      availabilityFailed = false;
+      continueButton.disabled = true;
+      continueButton.textContent = "Verificando disponibilidade…";
+      formMessage.textContent = "";
       const config = window.STORE_SUPABASE_CONFIG;
       const configured = config
         && /^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(config.url)
         && config.anonKey
         && config.anonKey !== "SUA_CHAVE_ANON_PUBLICA";
       if (!configured || !window.supabase) {
-        formMessage.textContent = "Não foi possível verificar a disponibilidade. Atualize a página ou avise o suporte.";
+        availabilityFailed = true;
+        continueButton.disabled = false;
+        continueButton.textContent = "Tentar novamente";
+        formMessage.textContent = "Não foi possível conectar ao Supabase para verificar os produtos. Confira a configuração e tente novamente.";
         return;
       }
       try {
@@ -147,6 +155,7 @@
           .select("product_code, is_available")
           .eq("store_key", "roblox");
         if (error) throw error;
+        unavailableAmounts.clear();
         data.filter((item) => !item.is_available).forEach((item) => {
           const match = /^roblox-giftcard-(\d+)$/.exec(item.product_code);
           if (match) unavailableAmounts.add(Number(match[1]));
@@ -172,7 +181,10 @@
         formMessage.textContent = hasAvailableAmount ? "" : "Todos os Gift Cards Roblox estão indisponíveis no momento.";
       } catch (error) {
         console.error("Não foi possível carregar a disponibilidade dos Gift Cards Roblox:", error);
-        formMessage.textContent = "Não foi possível verificar a disponibilidade. Atualize a página ou avise o suporte.";
+        availabilityFailed = true;
+        continueButton.disabled = false;
+        continueButton.textContent = "Tentar novamente";
+        formMessage.textContent = "Não foi possível consultar a disponibilidade no banco. Execute o supabase-setup.sql atualizado no Supabase e tente novamente.";
       }
     }
 
@@ -183,7 +195,11 @@
       const amount = Number(formData.get("amount"));
       const email = String(formData.get("email") || "").trim();
       if (!availabilityLoaded) {
-        formMessage.textContent = "Aguarde ou atualize a página para confirmar a disponibilidade dos produtos.";
+        if (availabilityFailed) {
+          loadAvailability();
+        } else {
+          formMessage.textContent = "Aguarde a confirmação da disponibilidade dos produtos.";
+        }
         return;
       }
       if (unavailableAmounts.has(amount)) {
