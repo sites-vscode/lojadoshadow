@@ -1,7 +1,6 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔒</text></svg>">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#101015">
@@ -90,7 +89,7 @@
     <div class="heading">
       <div class="label">Área restrita</div>
       <h1>Pedidos da loja</h1>
-      <p>Consulte os pedidos iniciados na página de pagamento.</p>
+      <p>Consulte os pedidos iniciados nas lojas Free Fire e Gift Cards Roblox.</p>
     </div>
     <nav class="admin-sections" id="admin-sections" aria-label="Seções administrativas" hidden>
       <a href="#orders-panel">Pedidos</a>
@@ -118,7 +117,7 @@
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Data e hora</th><th>ID do jogador</th><th>Produto / quantidade</th><th>Status</th></tr></thead>
+          <thead><tr><th>Data e hora</th><th>ID / e-mail de entrega</th><th>Produto / quantidade</th><th>Status</th></tr></thead>
           <tbody id="orders-body"></tbody>
         </table>
         <div class="empty" id="empty-state" hidden>Nenhum pedido registrado ainda.</div>
@@ -249,26 +248,51 @@
 
     async function loadOrders() {
       ordersMessage.textContent = "Carregando pedidos…";
-      const { data, error } = await client
-        .from("orders")
-        .select("player_id, item_type, product_code, diamonds, created_at")
-        .order("created_at", { ascending: false })
-        .limit(500);
-      if (error) {
+      let gameOrders;
+      let giftCardOrders;
+      let gameError;
+      let giftCardError;
+      try {
+        const results = await Promise.all([
+          client
+            .from("orders")
+            .select("player_id, item_type, product_code, diamonds, created_at")
+            .order("created_at", { ascending: false })
+            .limit(500),
+          client
+            .from("roblox_giftcard_orders")
+            .select("email, amount_brl, created_at")
+            .order("created_at", { ascending: false })
+            .limit(500)
+        ]);
+        [{ data: gameOrders, error: gameError }, { data: giftCardOrders, error: giftCardError }] = results;
+      } catch (requestError) {
+        ordersMessage.textContent = `Falha de conexão ao carregar os pedidos: ${requestError.message}`;
+        orderCount.textContent = "Falha ao carregar pedidos.";
+        return;
+      }
+      if (gameError || giftCardError) {
+        const error = gameError || giftCardError;
         ordersMessage.textContent = `Não foi possível carregar os pedidos: ${error.message}`;
         orderCount.textContent = "Falha ao carregar pedidos.";
         return;
       }
       orderBody.replaceChildren();
-      emptyState.hidden = data.length !== 0;
-      orderCount.textContent = `${data.length} pedido${data.length === 1 ? "" : "s"} recente${data.length === 1 ? "" : "s"}`;
-      data.forEach((order) => {
+      const allOrders = [
+        ...gameOrders.map((order) => ({ ...order, source: "game" })),
+        ...giftCardOrders.map((order) => ({ ...order, source: "roblox" }))
+      ].sort((first, second) => new Date(second.created_at).getTime() - new Date(first.created_at).getTime()).slice(0, 500);
+      emptyState.hidden = allOrders.length !== 0;
+      orderCount.textContent = `${allOrders.length} pedido${allOrders.length === 1 ? "" : "s"} recente${allOrders.length === 1 ? "" : "s"}`;
+      allOrders.forEach((order) => {
         const row = document.createElement("tr");
         const date = new Date(order.created_at);
         const values = [
           Number.isNaN(date.getTime()) ? "Data indisponível" : date.toLocaleString("pt-BR"),
-          order.player_id,
-          order.item_type === "booyah_pass"
+          order.source === "roblox" ? order.email : order.player_id,
+          order.source === "roblox"
+            ? `Roblox Gift Card R$ ${Number(order.amount_brl).toLocaleString("pt-BR")}`
+            : order.item_type === "booyah_pass"
             ? "Passe Booyah (1 un.)"
             : order.item_type === "emote"
               ? `${{
