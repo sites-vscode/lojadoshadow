@@ -1,7 +1,6 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='24' font-size='24'>💵</text></svg>">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#101015">
@@ -196,6 +195,23 @@
       return true;
     }
 
+    async function isGiftCardAvailable() {
+      const config = window.STORE_SUPABASE_CONFIG;
+      const configured = config
+        && /^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(config.url)
+        && config.anonKey
+        && config.anonKey !== "SUA_CHAVE_ANON_PUBLICA";
+      if (!configured || !window.supabase) throw new Error("Não foi possível verificar a disponibilidade do gift card.");
+      const client = window.supabase.createClient(config.url, config.anonKey);
+      const { data, error } = await client
+        .from("store_product_availability")
+        .select("is_available")
+        .eq("product_code", `roblox-giftcard-${amount}`)
+        .maybeSingle();
+      if (error) throw error;
+      return !data || data.is_available;
+    }
+
     async function copyPixCode(code) {
       if (navigator.clipboard && window.isSecureContext) {
         await navigator.clipboard.writeText(code);
@@ -222,6 +238,20 @@
       if (!validEmail(deliveryEmail)) {
         showError("Não consegui recuperar um e-mail válido para entrega. Volte à loja e refaça o pedido.");
       } else {
+        isGiftCardAvailable().then((isAvailable) => {
+          if (!isAvailable) {
+            showError("Este Gift Card está indisponível no momento. Volte à loja e escolha outro valor.");
+            return;
+          }
+          initializeCheckout();
+        }).catch((error) => {
+          console.error("Não foi possível confirmar a disponibilidade do Gift Card Roblox:", error);
+          showError("Não foi possível confirmar a disponibilidade deste Gift Card. Atualize a página ou avise o suporte.");
+        });
+      }
+    }
+
+    function initializeCheckout() {
         document.querySelector("#price").textContent = amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
         document.querySelector("#giftcard-value").textContent = amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
         document.querySelector("#delivery-email").textContent = deliveryEmail;
@@ -260,7 +290,6 @@
           console.error("Erro ao montar o Pix do gift card:", error);
           showError("Não foi possível montar o código Pix. Confira os dados de pagamento da loja.");
         }
-      }
     }
   </script>
 </body>
