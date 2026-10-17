@@ -1,1 +1,145 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101015">
+  <meta name="description" content="Escolha o valor do seu Gift Card Roblox e pague via Pix.">
+  <title>Gift Cards Roblox — Shadow Store</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #101015;
+      --panel: #1b1a21;
+      --muted: #a4a1ad;
+      --line: rgba(255, 255, 255, .1);
+      --blue: #3b63f5;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { min-height: 100vh; margin: 0; background: radial-gradient(ellipse at 50% 0, rgba(49, 83, 226, .19), transparent 45%), var(--bg); color: #f8f7fb; }
+    button, input { font: inherit; }
+    a { color: inherit; text-decoration: none; }
+    .container { width: min(850px, calc(100% - 32px)); margin: 0 auto; }
+    header { border-bottom: 1px solid var(--line); background: rgba(16, 16, 21, .88); }
+    .nav { display: flex; min-height: 68px; align-items: center; justify-content: space-between; gap: 16px; }
+    .brand { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 900; letter-spacing: -.04em; }
+    .brand-mark { display: grid; width: 35px; height: 35px; place-items: center; border-radius: 11px; background: linear-gradient(135deg, #3259ee, #8a54ed); }
+    .brand span:last-child span { color: #91a8ff; }
+    .back { color: #c8c3cf; font-size: 12px; font-weight: 700; }
+    main { padding: 55px 0 70px; }
+    .heading { margin-bottom: 28px; text-align: center; }
+    .label { color: #91a8ff; font-size: 10px; font-weight: 900; letter-spacing: .13em; text-transform: uppercase; }
+    h1 { margin: 9px 0 7px; font-size: clamp(31px, 6vw, 46px); letter-spacing: -.055em; }
+    .heading p { max-width: 540px; margin: 0 auto; color: var(--muted); font-size: 13px; line-height: 1.7; }
+    .panel { padding: 27px; border: 1px solid var(--line); border-radius: 18px; background: rgba(27, 26, 33, .96); box-shadow: 0 25px 80px rgba(0, 0, 0, .24); }
+    .field-label { display: block; margin-bottom: 11px; font-size: 14px; font-weight: 800; }
+    .amount-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 11px; }
+    .amount-option { position: relative; }
+    .amount-option input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+    .amount-option span { display: grid; min-height: 58px; place-items: center; border: 1px solid #393843; border-radius: 11px; background: #17161c; color: #f5f4f8; font-size: 16px; font-weight: 800; cursor: pointer; transition: border-color .15s, background .15s, transform .15s; }
+    .amount-option span:hover { transform: translateY(-2px); border-color: #718bff; }
+    .amount-option input:checked + span { border-color: #aebcff; background: rgba(58, 96, 242, .2); box-shadow: 0 0 0 1px #aebcff; }
+    .amount-option input:focus-visible + span { outline: 2px solid #d1d9ff; outline-offset: 3px; }
+    .field { margin-top: 24px; }
+    .field label { display: block; margin-bottom: 7px; font-size: 12px; font-weight: 700; }
+    .field input { width: 100%; padding: 12px 13px; border: 1px solid #393843; border-radius: 10px; background: #131318; color: white; font-size: 14px; }
+    .field input::placeholder { color: #77727f; }
+    .hint { margin: 7px 0 0; color: #928d9b; font-size: 10px; line-height: 1.6; }
+    .submit { display: flex; width: 100%; justify-content: center; align-items: center; gap: 9px; margin-top: 23px; padding: 14px 18px; border: 0; border-radius: 11px; background: var(--blue); color: white; font-size: 14px; font-weight: 900; cursor: pointer; transition: filter .15s, transform .15s; }
+    .submit:hover { filter: brightness(1.13); transform: translateY(-1px); }
+    .submit:focus-visible, .support:focus-visible, .back:focus-visible { outline: 2px solid #d1d9ff; outline-offset: 3px; }
+    .message { min-height: 18px; margin: 11px 0 0; color: #ffc779; font-size: 11px; }
+    .notice { margin: 18px 0 0; padding: 13px; border: 1px solid rgba(245, 180, 90, .18); border-radius: 11px; background: rgba(245, 180, 90, .06); color: #d7c7aa; font-size: 11px; line-height: 1.65; }
+    .support { position: fixed; z-index: 8; bottom: 20px; left: 20px; display: inline-flex; align-items: center; gap: 9px; padding: 12px 16px; border: 1px solid rgba(255, 255, 255, .16); border-radius: 999px; background: linear-gradient(110deg, #8033d4, #ba36a9); color: white; font-size: 12px; font-weight: 800; box-shadow: 0 8px 28px rgba(0, 0, 0, .38); }
+    footer { padding: 18px 0 27px; border-top: 1px solid var(--line); color: #827d89; font-size: 10px; line-height: 1.6; }
+    @media (max-width: 600px) {
+      main { padding: 38px 0 52px; }
+      .panel { padding: 19px; }
+      .amount-grid { grid-template-columns: repeat(2, 1fr); gap: 9px; }
+      .amount-option span { min-height: 52px; font-size: 14px; }
+      .support { bottom: max(16px, env(safe-area-inset-bottom)); left: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <a class="support" href="https://wa.me/5542999791334?text=Ol%C3%A1%21%20Preciso%20de%20ajuda%20com%20meu%20Gift%20Card%20Roblox." target="_blank" rel="noopener noreferrer" aria-label="Falar com o suporte pelo WhatsApp"><span aria-hidden="true">✆</span> Suporte WhatsApp</a>
+  <header>
+    <nav class="nav container" aria-label="Navegação">
+      <a class="brand" href="roblox.html"><span class="brand-mark" aria-hidden="true">R</span><span>ROBLOX <span>GIFT CARDS</span></span></a>
+      <a class="back" href="index.html">← Loja Free Fire</a>
+    </nav>
+  </header>
+  <main class="container">
+    <div class="heading">
+      <div class="label">Shadow Store apresenta</div>
+      <h1>Gift Cards Roblox</h1>
+      <p>Escolha o valor do gift card e informe o e-mail onde deseja receber o código. O pagamento Pix será gerado no mesmo valor escolhido.</p>
+    </div>
+    <section class="panel" aria-label="Selecionar Gift Card Roblox">
+      <form id="giftcard-form">
+        <fieldset style="border:0;padding:0;margin:0">
+          <legend class="field-label">Escolha o valor do gift card (BRL)</legend>
+          <div class="amount-grid" id="amount-options"></div>
+        </fieldset>
+        <div class="field">
+          <label for="delivery-email">E-mail para receber o código</label>
+          <input id="delivery-email" name="email" type="email" autocomplete="email" maxlength="254" placeholder="voce@exemplo.com" required>
+          <p class="hint">Confira se o endereço está correto. Nunca informe sua senha do Roblox.</p>
+        </div>
+        <button class="submit" type="submit">Continuar para o Pix <span aria-hidden="true">→</span></button>
+        <p class="message" id="form-message" role="status" aria-live="polite"></p>
+      </form>
+      <p class="notice">O valor selecionado representa o crédito do gift card em reais. A conversão para Robux pode depender das regras e opções atuais do Roblox. O código é enviado pelo vendedor após a confirmação do pagamento; confira essa confirmação diretamente no banco.</p>
+    </section>
+  </main>
+  <footer><div class="container">Loja independente, sem afiliação ou patrocínio oficial do Roblox. Os códigos de gift card são resgatados conforme os termos e a disponibilidade oficial do Roblox.</div></footer>
+  <script>
+    const denominations = [25, 30, 35, 50, 55, 60, 75, 100, 250, 500];
+    const amountOptions = document.querySelector("#amount-options");
+    const formMessage = document.querySelector("#form-message");
 
+    denominations.forEach((amount, index) => {
+      const label = document.createElement("label");
+      label.className = "amount-option";
+      const input = document.createElement("input");
+      input.type = "radio";
+      input.name = "amount";
+      input.value = String(amount);
+      input.required = true;
+      input.checked = index === 0;
+      const display = document.createElement("span");
+      display.textContent = `R$ ${amount.toLocaleString("pt-BR")}`;
+      label.append(input, display);
+      amountOptions.append(label);
+    });
+
+    document.querySelector("#giftcard-form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const formData = new FormData(form);
+      const amount = Number(formData.get("amount"));
+      const email = String(formData.get("email") || "").trim();
+      if (!denominations.includes(amount)) {
+        formMessage.textContent = "Selecione um valor de gift card válido.";
+        return;
+      }
+      if (!form.reportValidity()) return;
+      if (!window.crypto || typeof window.crypto.randomUUID !== "function") {
+        formMessage.textContent = "Não foi possível iniciar o pedido neste navegador. Tente novamente em um navegador atualizado.";
+        return;
+      }
+      const orderId = window.crypto.randomUUID();
+      try {
+        sessionStorage.setItem(`roblox-giftcard-email-${orderId}`, email);
+      } catch (error) {
+        console.error("Não foi possível guardar os dados temporários do pedido:", error);
+        formMessage.textContent = "Não foi possível preparar seu pedido. Verifique as permissões do navegador e tente novamente.";
+        return;
+      }
+      const params = new URLSearchParams({ valor: String(amount), pedido: orderId });
+      window.location.href = `pagamento-roblox.html?${params.toString()}`;
+    });
+  </script>
+</body>
+</html>
