@@ -1,7 +1,6 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='24' font-size='24'>🔒</text></svg>">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#101015">
@@ -68,6 +67,13 @@
     .offer-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 16px; }
     .offer-delete { padding: 7px 10px; background: #632d3c; }
     .offer-cancel-all { border: 1px solid rgba(255, 120, 120, .3); background: #632d3c; }
+    #availability-panel { margin-top: 24px; }
+    .availability-block { margin-top: 21px; }
+    .availability-block h3 { margin: 0 0 10px; font-size: 14px; }
+    .availability-status { font-weight: 800; }
+    .availability-status.unavailable { color: #ff9c9c; }
+    .availability-status.available { color: #83e3b2; }
+    .availability-toggle.unavailable { border: 1px solid rgba(255, 120, 120, .3); background: #632d3c; }
     @media (max-width: 560px) {
       .offer-form-grid, .product-options { grid-template-columns: 1fr; }
     }
@@ -95,6 +101,7 @@
     <nav class="admin-sections" id="admin-sections" aria-label="Seções administrativas" hidden>
       <a href="#orders-panel">Pedidos</a>
       <a href="#offers-panel">Centro de ofertas</a>
+      <a href="#availability-panel">Disponibilidade</a>
     </nav>
 
     <section class="panel" id="login-panel" aria-labelledby="login-title">
@@ -170,6 +177,34 @@
         <div class="empty" id="offers-empty" hidden>Nenhuma oferta cadastrada.</div>
       </div>
     </section>
+
+    <section class="panel" id="availability-panel" hidden aria-labelledby="availability-title">
+      <h2 id="availability-title">Disponibilidade dos produtos</h2>
+      <p class="panel-copy">Desative um produto para impedir novas compras. A mudança vale apenas para o item selecionado e pode ser revertida quando quiser.</p>
+      <div class="toolbar">
+        <p>Estado atual dos produtos nas lojas</p>
+        <button class="secondary" id="refresh-availability-button" type="button">Atualizar disponibilidade</button>
+      </div>
+      <div class="availability-block">
+        <h3>Free Fire — Diamantes, Passe Booyah e Emotes</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Produto</th><th>Status</th><th>Ação</th></tr></thead>
+            <tbody id="free-fire-availability-body"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="availability-block">
+        <h3>Gift Cards — Roblox</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Produto</th><th>Status</th><th>Ação</th></tr></thead>
+            <tbody id="roblox-availability-body"></tbody>
+          </table>
+        </div>
+      </div>
+      <p class="message" id="availability-message" role="status" aria-live="polite"></p>
+    </section>
   </main>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" referrerpolicy="no-referrer" crossorigin="anonymous"></script>
   <script src="supabase-config.js"></script>
@@ -187,11 +222,36 @@
     const offerProductsElement = document.querySelector("#offer-products");
     const offersBody = document.querySelector("#offers-body");
     const offersEmpty = document.querySelector("#offers-empty");
+    const availabilityPanel = document.querySelector("#availability-panel");
+    const availabilityMessage = document.querySelector("#availability-message");
+    const freeFireAvailabilityBody = document.querySelector("#free-fire-availability-body");
+    const robloxAvailabilityBody = document.querySelector("#roblox-availability-body");
     const saveOfferButton = document.querySelector("#save-offer-button");
     const cancelAllOffersButton = document.querySelector("#cancel-all-offers-button");
     const durationInput = document.querySelector("#duration");
     const durationUnit = document.querySelector("#duration-unit");
     const adminSections = document.querySelector("#admin-sections");
+    const availabilityProducts = [
+      { store: "free-fire", code: "diamonds-110", name: "110 diamantes" },
+      { store: "free-fire", code: "diamonds-341", name: "341 diamantes" },
+      { store: "free-fire", code: "diamonds-572", name: "572 diamantes" },
+      { store: "free-fire", code: "diamonds-1166", name: "1.166 diamantes" },
+      { store: "free-fire", code: "diamonds-2398", name: "2.398 diamantes" },
+      { store: "free-fire", code: "diamonds-6160", name: "6.160 diamantes" },
+      { store: "free-fire", code: "booyah-pass", name: "Passe Booyah" },
+      { store: "free-fire", code: "emote-tubarao-bebe", name: "🦈 Tubarão Bebê" },
+      { store: "free-fire", code: "emote-aplauso", name: "👏 Aplauso" },
+      { store: "free-fire", code: "emote-lol", name: "😂 LOL" },
+      { store: "free-fire", code: "emote-agite-comigo", name: "💃 Agite Comigo" },
+      { store: "free-fire", code: "emote-o-cisne", name: "🦢 O Cisne" },
+      { store: "free-fire", code: "emote-flores-do-amor", name: "🌹 Flores do Amor" },
+      { store: "free-fire", code: "emote-danca-em-voga", name: "🪩 Dança em Voga" },
+      ...[25, 30, 35, 50, 55, 60, 75, 100, 250, 500].map((amount) => ({
+        store: "roblox",
+        code: `roblox-giftcard-${amount}`,
+        name: `Gift Card R$ ${amount.toLocaleString("pt-BR")}`
+      }))
+    ];
     const config = window.STORE_SUPABASE_CONFIG;
     const offerProducts = [
       { code: "diamonds-110", name: "110 diamantes" },
@@ -244,6 +304,7 @@
       loginPanel.hidden = false;
       ordersPanel.hidden = true;
       offersPanel.hidden = true;
+      availabilityPanel.hidden = true;
       adminSections.hidden = true;
     }
 
@@ -368,6 +429,52 @@
       return true;
     }
 
+    async function loadAvailability() {
+      availabilityMessage.textContent = "Carregando disponibilidade…";
+      availabilityMessage.classList.remove("success");
+      let data;
+      let error;
+      try {
+        ({ data, error } = await client
+          .from("store_product_availability")
+          .select("product_code, store_key, is_available"));
+      } catch (requestError) {
+        availabilityMessage.textContent = `Falha de conexão ao carregar disponibilidade: ${requestError.message}`;
+        return false;
+      }
+      if (error) {
+        availabilityMessage.textContent = `Não foi possível carregar a disponibilidade: ${error.message}`;
+        return false;
+      }
+
+      const unavailableCodes = new Set(data.filter((item) => !item.is_available).map((item) => item.product_code));
+      freeFireAvailabilityBody.replaceChildren();
+      robloxAvailabilityBody.replaceChildren();
+      availabilityProducts.forEach((product) => {
+        const isAvailable = !unavailableCodes.has(product.code);
+        const row = document.createElement("tr");
+        row.dataset.productCode = product.code;
+        row.dataset.storeKey = product.store;
+        row.dataset.isAvailable = String(isAvailable);
+        const nameCell = document.createElement("td");
+        nameCell.textContent = product.name;
+        const statusCell = document.createElement("td");
+        statusCell.className = `availability-status ${isAvailable ? "available" : "unavailable"}`;
+        statusCell.textContent = isAvailable ? "Disponível" : "Indisponível";
+        const actionCell = document.createElement("td");
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `availability-toggle${isAvailable ? "" : " unavailable"}`;
+        button.dataset.availabilityToggle = "";
+        button.textContent = isAvailable ? "Tornar indisponível" : "Ativar produto";
+        actionCell.append(button);
+        row.append(nameCell, statusCell, actionCell);
+        (product.store === "free-fire" ? freeFireAvailabilityBody : robloxAvailabilityBody).append(row);
+      });
+      availabilityMessage.textContent = "";
+      return true;
+    }
+
     async function openAdmin(user) {
       const { data, error } = await client
         .from("store_admins")
@@ -389,8 +496,9 @@
       loginPanel.hidden = true;
       ordersPanel.hidden = false;
       offersPanel.hidden = false;
+      availabilityPanel.hidden = false;
       adminSections.hidden = false;
-      await Promise.all([loadOrders(), loadOffers()]);
+      await Promise.all([loadOrders(), loadOffers(), loadAvailability()]);
     }
 
     if (!validConfig() || !window.supabase) {
@@ -544,6 +652,47 @@
         offerMessage.textContent = "Oferta removida.";
         offerMessage.classList.add("success");
       }
+    });
+    document.querySelector("#refresh-availability-button").addEventListener("click", loadAvailability);
+    [freeFireAvailabilityBody, robloxAvailabilityBody].forEach((body) => {
+      body.addEventListener("click", async (event) => {
+        const button = event.target.closest("button[data-availability-toggle]");
+        const row = button && button.closest("tr[data-product-code]");
+        if (!row || !client || button.disabled) return;
+        const isAvailable = row.dataset.isAvailable === "true";
+        button.disabled = true;
+        button.textContent = "Salvando…";
+        availabilityMessage.classList.remove("success");
+        availabilityMessage.textContent = "Salvando disponibilidade…";
+        let error;
+        try {
+          ({ error } = await client
+            .from("store_product_availability")
+            .upsert({
+              product_code: row.dataset.productCode,
+              store_key: row.dataset.storeKey,
+              is_available: !isAvailable,
+              updated_at: new Date().toISOString()
+            }, { onConflict: "product_code" }));
+        } catch (requestError) {
+          button.disabled = false;
+          button.textContent = isAvailable ? "Tornar indisponível" : "Ativar produto";
+          availabilityMessage.textContent = `Falha de conexão ao atualizar disponibilidade: ${requestError.message}`;
+          return;
+        }
+        if (error) {
+          button.disabled = false;
+          button.textContent = isAvailable ? "Tornar indisponível" : "Ativar produto";
+          availabilityMessage.textContent = `Não foi possível atualizar a disponibilidade: ${error.message}`;
+          return;
+        }
+        if (await loadAvailability()) {
+          availabilityMessage.textContent = isAvailable
+            ? "Produto marcado como indisponível nas lojas."
+            : "Produto reativado e disponível para compra.";
+          availabilityMessage.classList.add("success");
+        }
+      });
     });
     document.querySelector("#logout-button").addEventListener("click", async () => {
       const { error } = await client.auth.signOut();
