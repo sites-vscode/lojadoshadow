@@ -1,7 +1,6 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='24' font-size='24'>🪙</text></svg>">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#101015">
@@ -40,6 +39,9 @@
     .amount-option input { position: absolute; width: 1px; height: 1px; opacity: 0; }
     .amount-option span { display: grid; min-height: 58px; place-items: center; border: 1px solid #393843; border-radius: 11px; background: #17161c; color: #f5f4f8; font-size: 16px; font-weight: 800; cursor: pointer; transition: border-color .15s, background .15s, transform .15s; }
     .amount-option span:hover { transform: translateY(-2px); border-color: #718bff; }
+    .amount-option span small { margin-top: 2px; color: #a4a1ad; font-size: 9px; font-weight: 900; letter-spacing: .05em; text-transform: uppercase; }
+    .amount-option.unavailable { filter: grayscale(1); opacity: .52; }
+    .amount-option.unavailable span { cursor: not-allowed; }
     .amount-option input:checked + span { border-color: #aebcff; background: rgba(58, 96, 242, .2); box-shadow: 0 0 0 1px #aebcff; }
     .amount-option input:focus-visible + span { outline: 2px solid #d1d9ff; outline-offset: 3px; }
     .field { margin-top: 24px; }
@@ -68,7 +70,7 @@
   <header>
     <nav class="nav container" aria-label="Navegação">
       <a class="brand" href="roblox.html"><span class="brand-mark" aria-hidden="true">R</span><span>ROBLOX <span>GIFT CARDS</span></span></a>
-      <a class="back" href="index.html">← Loja Free Fire</a>
+      <a class="back" href="index.html">← Início</a>
     </nav>
   </header>
   <main class="container">
@@ -99,28 +101,94 @@
     const denominations = [25, 30, 35, 50, 55, 60, 75, 100, 250, 500];
     const amountOptions = document.querySelector("#amount-options");
     const formMessage = document.querySelector("#form-message");
+    const giftCardForm = document.querySelector("#giftcard-form");
+    const continueButton = giftCardForm.querySelector('button[type="submit"]');
+    const unavailableAmounts = new Set();
+    let availabilityLoaded = false;
+    continueButton.disabled = true;
+    continueButton.textContent = "Verificando disponibilidade…";
 
     denominations.forEach((amount, index) => {
       const label = document.createElement("label");
       label.className = "amount-option";
+      label.dataset.amount = String(amount);
       const input = document.createElement("input");
       input.type = "radio";
       input.name = "amount";
       input.value = String(amount);
       input.required = true;
       input.checked = index === 0;
+      input.disabled = true;
       const display = document.createElement("span");
-      display.textContent = `R$ ${amount.toLocaleString("pt-BR")}`;
+      display.append(document.createTextNode(`R$ ${amount.toLocaleString("pt-BR")}`));
+      const unavailableLabel = document.createElement("small");
+      unavailableLabel.textContent = "Indisponível";
+      unavailableLabel.hidden = true;
+      display.append(unavailableLabel);
       label.append(input, display);
       amountOptions.append(label);
     });
 
-    document.querySelector("#giftcard-form").addEventListener("submit", (event) => {
+    async function loadAvailability() {
+      const config = window.STORE_SUPABASE_CONFIG;
+      const configured = config
+        && /^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(config.url)
+        && config.anonKey
+        && config.anonKey !== "SUA_CHAVE_ANON_PUBLICA";
+      if (!configured || !window.supabase) {
+        formMessage.textContent = "Não foi possível verificar a disponibilidade. Atualize a página ou avise o suporte.";
+        return;
+      }
+      try {
+        const client = window.supabase.createClient(config.url, config.anonKey);
+        const { data, error } = await client
+          .from("store_product_availability")
+          .select("product_code, is_available")
+          .eq("store_key", "roblox");
+        if (error) throw error;
+        data.filter((item) => !item.is_available).forEach((item) => {
+          const match = /^roblox-giftcard-(\d+)$/.exec(item.product_code);
+          if (match) unavailableAmounts.add(Number(match[1]));
+        });
+        denominations.forEach((amount) => {
+          const option = amountOptions.querySelector(`[data-amount="${amount}"]`);
+          const input = option.querySelector("input");
+          const isUnavailable = unavailableAmounts.has(amount);
+          input.disabled = isUnavailable;
+          option.classList.toggle("unavailable", isUnavailable);
+          option.querySelector("small").hidden = !isUnavailable;
+        });
+        if (unavailableAmounts.has(Number(giftCardForm.elements.amount.value))) {
+          const firstAvailable = denominations.find((amount) => !unavailableAmounts.has(amount));
+          giftCardForm.querySelectorAll('input[name="amount"]').forEach((input) => {
+            input.checked = Number(input.value) === firstAvailable;
+          });
+        }
+        availabilityLoaded = true;
+        const hasAvailableAmount = denominations.some((amount) => !unavailableAmounts.has(amount));
+        continueButton.disabled = !hasAvailableAmount;
+        continueButton.textContent = hasAvailableAmount ? "Continuar para o Pix →" : "Indisponível";
+        formMessage.textContent = hasAvailableAmount ? "" : "Todos os Gift Cards Roblox estão indisponíveis no momento.";
+      } catch (error) {
+        console.error("Não foi possível carregar a disponibilidade dos Gift Cards Roblox:", error);
+        formMessage.textContent = "Não foi possível verificar a disponibilidade. Atualize a página ou avise o suporte.";
+      }
+    }
+
+    giftCardForm.addEventListener("submit", (event) => {
       event.preventDefault();
       const form = event.currentTarget;
       const formData = new FormData(form);
       const amount = Number(formData.get("amount"));
       const email = String(formData.get("email") || "").trim();
+      if (!availabilityLoaded) {
+        formMessage.textContent = "Aguarde ou atualize a página para confirmar a disponibilidade dos produtos.";
+        return;
+      }
+      if (unavailableAmounts.has(amount)) {
+        formMessage.textContent = "Este Gift Card está indisponível no momento. Escolha outro valor.";
+        return;
+      }
       if (!denominations.includes(amount)) {
         formMessage.textContent = "Selecione um valor de gift card válido.";
         return;
@@ -141,6 +209,8 @@
       const params = new URLSearchParams({ valor: String(amount), pedido: orderId });
       window.location.href = `pagamento-roblox.html?${params.toString()}`;
     });
+
+    loadAvailability();
   </script>
 </body>
 </html>
