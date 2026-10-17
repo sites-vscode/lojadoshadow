@@ -1,7 +1,6 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💵</text></svg>">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#101015">
@@ -98,7 +97,7 @@
   <header>
     <nav class="nav container" aria-label="Navegação">
       <a class="brand" href="index.html"><span class="brand-mark" aria-hidden="true">✦</span><span>SHADOW<span>STORE</span></span></a>
-      <a class="back" href="index.html#pacotes">← Voltar aos pacotes</a>
+      <a class="back" href="free-fire.html#pacotes">← Voltar aos pacotes</a>
     </nav>
   </header>
   <main class="container">
@@ -274,6 +273,23 @@
       return data;
     }
 
+    async function isProductAvailable() {
+      const config = window.STORE_SUPABASE_CONFIG;
+      const configured = config
+        && /^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(config.url)
+        && config.anonKey
+        && config.anonKey !== "SUA_CHAVE_ANON_PUBLICA";
+      if (!configured || !window.supabase) throw new Error("Não foi possível verificar a disponibilidade do produto.");
+      const client = window.supabase.createClient(config.url, config.anonKey);
+      const { data, error } = await client
+        .from("store_product_availability")
+        .select("is_available")
+        .eq("product_code", productCode)
+        .maybeSingle();
+      if (error) throw error;
+      return !data || data.is_available;
+    }
+
     async function copyPixCode(code) {
       if (navigator.clipboard && window.isSecureContext) {
         await navigator.clipboard.writeText(code);
@@ -286,13 +302,17 @@
     }
 
     if (!product || !/^\d{1,24}$/.test(playerId) || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(orderId)) {
-      showError("Não consegui identificar o produto, o ID do jogador ou o pedido. Volte à loja publicada e tente novamente. Se continuar, publique juntos os arquivos index.html e pagamento.html.");
+      showError("Não consegui identificar o produto, o ID do jogador ou o pedido. Volte à loja de Free Fire e tente novamente. Se continuar, publique juntos os arquivos free-fire.html e pagamento.html.");
     } else {
       async function initializePayment() {
         document.querySelector("#order-title").textContent = product.name;
         document.querySelector("#product-name").textContent = product.name;
         document.querySelector("#player-id").textContent = playerId;
         try {
+          if (!(await isProductAvailable())) {
+            showError("Este produto está indisponível no momento. Volte à loja e escolha outro produto.");
+            return;
+          }
           const offer = await getActiveOffer();
           if (offer) {
             finalPriceCents = Math.round(product.cents * (100 - offer.discount_percent) / 100);
@@ -302,7 +322,7 @@
           }
         } catch (error) {
           console.error("Não foi possível verificar a oferta ativa:", error);
-          showError("Não foi possível verificar as ofertas ativas. Atualize a página e tente novamente antes de pagar.");
+          showError("Não foi possível confirmar a disponibilidade do produto e das ofertas. Atualize a página e tente novamente antes de pagar.");
           return;
         }
         const price = (finalPriceCents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
