@@ -1,12 +1,11 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💎</text></svg>">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#101015">
-  <meta name="description" content="Escolha diamantes, Passe Booyah ou emotes, gere seu Pix e registre seu pedido.">
-  <title>Shadow Store — Diamantes Free Fire</title>
+  <meta name="description" content="Compre diamantes, Passe Booyah ou emotes para Free Fire com Pix.">
+  <title>Free Fire — Shadow Store</title>
   <style>
     :root {
       color-scheme: dark;
@@ -237,7 +236,8 @@
     .product-old-price { display: block; margin: -9px 0 10px; color: #98929f; font-size: 12px; text-decoration: line-through; }
     .offer-status { margin: 8px 0 0; color: #ffc779; text-align: center; font-size: 11px; }
     .product .button { width: 100%; padding: 11px; font-size: 12px; }
-    .product .button:disabled { cursor: wait; opacity: .65; }
+    .product .button:disabled { cursor: not-allowed; opacity: .65; }
+    .product.is-unavailable { filter: grayscale(1); opacity: .62; }
     .price-note { margin: 16px 0 0; color: #8e8998; text-align: center; font-size: 10px; }
 
     .how { padding: 69px 0; background: #15151a; }
@@ -373,14 +373,16 @@
   <div class="announcement">💎 OFERTAS ESPECIAIS EM DIAMANTES — CONSULTE OS PACOTES</div>
   <header>
     <nav class="nav container" aria-label="Navegação principal">
-      <a class="brand" href="#" aria-label="Shadow Store, início">
+      <a class="brand" href="index.html" aria-label="Shadow Store, início">
         <span class="brand-mark" aria-hidden="true">✦</span>
         <span class="brand-name">SHADOW<span>STORE</span></span>
       </a>
       <div class="nav-links">
+        <a href="index.html">Início</a>
         <a href="#pacotes">Pacotes</a>
         <a href="#passe-booyah">Passe Booyah</a>
         <a href="#emotes">Emotes</a>
+        <a href="roblox.html">Gift Cards Roblox</a>
         <a href="#como-comprar">Como comprar</a>
         <a href="#duvidas">Dúvidas</a>
       </div>
@@ -544,6 +546,7 @@
     const passList = document.querySelector("#pass-list");
     const emoteList = document.querySelector("#emote-list");
     const activeOffers = new Map();
+    const unavailableProducts = new Set();
     const offerStatusByType = {
       diamonds: document.querySelector("#offer-status"),
       booyah_pass: document.querySelector("#pass-offer-status"),
@@ -568,7 +571,10 @@
         <button class="button" type="button">Comprar agora <span aria-hidden="true">→</span></button>`;
       const button = card.querySelector("button");
       button.disabled = true;
-      button.addEventListener("click", () => openOrder(product));
+      button.textContent = "Carregando…";
+      button.addEventListener("click", () => {
+        if (!button.disabled && !unavailableProducts.has(product.code)) openOrder(product);
+      });
       card.dataset.productCode = product.code;
       const productListTarget = product.type === "booyah_pass"
         ? passList
@@ -611,16 +617,32 @@
       try {
         if (!window.supabase) throw new Error("A conexão com o sistema de ofertas não carregou.");
         const client = window.supabase.createClient(config.url, config.anonKey);
-        const { data, error } = await client
-          .from("store_offers")
-          .select("product_code, discount_percent, starts_at, ends_at")
-          .lte("starts_at", new Date().toISOString())
-          .gt("ends_at", new Date().toISOString());
-        if (error) throw error;
-        const offers = new Map(data.map((offer) => [offer.product_code, offer]));
+        const [offerResult, availabilityResult] = await Promise.all([
+          client
+            .from("store_offers")
+            .select("product_code, discount_percent, starts_at, ends_at")
+            .lte("starts_at", new Date().toISOString())
+            .gt("ends_at", new Date().toISOString()),
+          client
+            .from("store_product_availability")
+            .select("product_code, is_available")
+            .eq("store_key", "free-fire")
+        ]);
+        if (offerResult.error) throw offerResult.error;
+        if (availabilityResult.error) throw availabilityResult.error;
+        const offers = new Map(offerResult.data.map((offer) => [offer.product_code, offer]));
+        unavailableProducts.clear();
+        availabilityResult.data
+          .filter((item) => !item.is_available)
+          .forEach((item) => unavailableProducts.add(item.product_code));
         products.forEach((product) => renderOffer(product, offers.get(product.code)));
         products.forEach((product) => {
-          document.querySelector(`[data-product-code="${product.code}"] button`).disabled = false;
+          const card = document.querySelector(`[data-product-code="${product.code}"]`);
+          const button = card.querySelector("button");
+          const isAvailable = !unavailableProducts.has(product.code);
+          card.classList.toggle("is-unavailable", !isAvailable);
+          button.disabled = !isAvailable;
+          button.textContent = isAvailable ? "Comprar agora →" : "Indisponível";
         });
       } catch (error) {
         console.error("Não foi possível carregar ofertas:", error);
