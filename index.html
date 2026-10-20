@@ -1,9 +1,12 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Em manutenção</title>
+  <meta name="theme-color" content="#080711">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Em manutenção | Shadow Store</title>
 
   <style>
     * {
@@ -17,72 +20,216 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-family: Arial, sans-serif;
-      background: linear-gradient(135deg, #0f172a, #1e293b);
-      color: white;
-      text-align: center;
-      padding: 20px;
+      padding: 24px;
+      overflow: hidden;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #fff;
+      background:
+        radial-gradient(ellipse at 50% 40%,
+          #29134d 0%, #100b20 40%, #080711 75%);
+    }
+
+    .glow {
+      position: fixed;
+      width: 280px;
+      height: 280px;
+      border-radius: 50%;
+      background: #8b35ff;
+      filter: blur(140px);
+      opacity: .22;
+      top: 5%;
+      left: 10%;
+      pointer-events: none;
     }
 
     .container {
-      max-width: 600px;
+      position: relative;
+      width: 100%;
+      max-width: 560px;
+      text-align: center;
+      padding: 42px 28px;
+      border: 1px solid rgba(164, 94, 255, .3);
+      border-radius: 24px;
+      background: rgba(16, 12, 31, .83);
+      box-shadow: 0 0 65px rgba(126, 48, 255, .12);
+      animation: appear .8s ease both;
     }
 
-    .icon {
-      font-size: 80px;
-      margin-bottom: 25px;
-      animation: girar 4s linear infinite;
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 42px;
+      font-size: 23px;
+      font-weight: 900;
+      letter-spacing: 2px;
     }
 
-    h1 {
-      font-size: 42px;
-      margin-bottom: 15px;
+    .logo-symbol {
+      color: #b77aff;
+      font-size: 32px;
+      text-shadow: 0 0 20px #963fff;
     }
 
-    p {
-      color: #cbd5e1;
-      font-size: 18px;
-      line-height: 1.6;
-      margin-bottom: 30px;
+    .logo span:last-child {
+      color: #b77aff;
+    }
+
+    .gear {
+      font-size: 76px;
+      margin-bottom: 22px;
+      display: inline-block;
+      filter: drop-shadow(0 0 18px #933cff);
+      animation: rotate 12s linear infinite;
     }
 
     .status {
       display: inline-block;
-      padding: 12px 22px;
-      border-radius: 50px;
-      background: rgba(255,255,255,0.1);
-      border: 1px solid rgba(255,255,255,0.15);
-      font-size: 14px;
-      color: #e2e8f0;
+      color: #c7a0ff;
+      background: rgba(149, 67, 255, .12);
+      border: 1px solid rgba(170, 106, 255, .3);
+      padding: 8px 14px;
+      border-radius: 30px;
+      font-size: 11px;
+      font-weight: bold;
+      letter-spacing: 2px;
+      margin-bottom: 20px;
     }
 
-    @keyframes girar {
-      from {
-        transform: rotate(0deg);
-      }
-      to {
-        transform: rotate(360deg);
+    h1 {
+      font-size: clamp(29px, 7vw, 43px);
+      line-height: 1.15;
+      margin-bottom: 18px;
+      font-weight: 900;
+    }
+
+    h1 span {
+      color: #b77aff;
+      text-shadow: 0 0 25px rgba(153, 72, 255, .35);
+    }
+
+    p {
+      color: #b8b4c8;
+      line-height: 1.8;
+      font-size: 15px;
+      margin-bottom: 28px;
+    }
+
+    .progress {
+      width: 100%;
+      height: 5px;
+      background: #282039;
+      border-radius: 20px;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+
+    .progress-bar {
+      width: 65%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #7837ff, #d5a4ff);
+      box-shadow: 0 0 15px #9b4cff;
+      animation: pulse 2s ease-in-out infinite alternate;
+    }
+
+    .progress-label {
+      color: #8e879f;
+      font-size: 11px;
+      letter-spacing: 1px;
+      margin-bottom: 30px;
+    }
+
+    .notice {
+      padding: 15px;
+      background: rgba(255, 255, 255, .035);
+      border: 1px solid rgba(255, 255, 255, .07);
+      border-radius: 12px;
+      color: #c9c4d5;
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .notice strong {
+      color: #d1a8ff;
+    }
+
+    footer {
+      margin-top: 30px;
+      color: #716b83;
+      font-size: 11px;
+      letter-spacing: 1px;
+    }
+
+    @keyframes rotate {
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes pulse {
+      from { opacity: .65; }
+      to { opacity: 1; }
+    }
+
+    @keyframes appear {
+      from { opacity: 0; transform: translateY(18px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 480px) {
+      .container { padding: 34px 21px; }
+      .logo { margin-bottom: 32px; }
+      .gear { font-size: 64px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
       }
     }
   </style>
 </head>
 
 <body>
+  <div class="glow"></div>
 
-  <div class="container">
-    <div class="icon">⚙️</div>
+  <main class="container">
+    <div class="logo">
+      <span class="logo-symbol">✦</span>
+      <div>SHADOW<span>STORE</span></div>
+    </div>
 
-    <h1>Estamos em manutenção</h1>
+    <div class="gear" aria-hidden="true">⚙️</div>
+
+    <div>
+      <span class="status">● MANUTENÇÃO EM ANDAMENTO</span>
+    </div>
+
+    <h1>Estamos preparando algo <span>incrível!</span></h1>
 
     <p>
-      Nosso site está passando por algumas melhorias.
-      Voltaremos em breve com novidades e uma experiência ainda melhor.
+      Nossa loja está passando por melhorias para oferecer
+      uma experiência ainda melhor para você.
+      Voltaremos em breve com novidades!
     </p>
 
-    <div class="status">
-      🔧 Trabalhando nisso...
+    <div class="progress">
+      <div class="progress-bar"></div>
     </div>
-  </div>
 
+    <div class="progress-label">
+      ATUALIZANDO A SHADOW STORE...
+    </div>
+
+    <div class="notice">
+      💜 <strong>Fique tranquilo!</strong><br>
+      Estamos trabalhando para voltar o mais rápido possível.
+      Obrigado pela paciência e por fazer parte da nossa comunidade!
+    </div>
+
+    <footer>
+      © 2026 SHADOW STORE · TODOS OS DIREITOS RESERVADOS
+    </footer>
+  </main>
 </body>
 </html>
